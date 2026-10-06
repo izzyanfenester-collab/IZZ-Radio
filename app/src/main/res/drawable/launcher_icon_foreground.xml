@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:left="42dp" android:top="42dp" android:right="42dp" android:bottom="42dp">
-        <bitmap android:src="@drawable/radio_icon_source" android:gravity="fill"/>
-    </item>
-</layer-list>
