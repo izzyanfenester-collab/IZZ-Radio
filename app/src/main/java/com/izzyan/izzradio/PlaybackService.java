@@ -42,14 +42,24 @@ public final class PlaybackService extends Service {
             }
             if((Intent.ACTION_SCREEN_ON.equals(action) || Intent.ACTION_USER_PRESENT.equals(action)) && screenWasOff) {
                 screenWasOff=false;
-                boolean enabled=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getBoolean("auto_launch_wake",false);
-                if(!enabled) return;
+                android.content.SharedPreferences prefs=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE);
+                if(!prefs.getBoolean("auto_launch_wake",false)) return;
+
+                long now=System.currentTimeMillis();
+                long lastWake=prefs.getLong("last_auto_wake_ms",0L);
+                if(now-lastWake<5000L) return;
+                prefs.edit().putLong("last_auto_wake_ms",now).apply();
+
+                String last=prefs.getString("last_station_id","");
+                freshLaunch();
+                if(last!=null && !last.isEmpty()) select(last);
+
                 Intent launch=getPackageManager().getLaunchIntentForPackage(getPackageName());
                 if(launch==null) return;
-                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                launch.putExtra("wake_launch",true);
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                launch.putExtra("wake_ui_only",true);
                 try { startActivity(launch); } catch(Exception ignored) {
-                    // Some Android builds block background activity starts.
+                    // Audio sequence still runs even if this Android build blocks UI auto-launch.
                 }
             }
         }
@@ -103,8 +113,11 @@ public final class PlaybackService extends Service {
         String action=intent.getAction();
         if(STOP.equals(action)) { stopPlayback(); return START_NOT_STICKY; }
         startForeground(17,notification());
-        if(LAUNCH.equals(action)) freshLaunch();
-        else if(SELECT.equals(action)) select(intent.getStringExtra("station"));
+        if(LAUNCH.equals(action)) {
+            freshLaunch();
+            String resume=intent.getStringExtra("resume_station");
+            if(resume!=null && !resume.isEmpty()) select(resume);
+        } else if(SELECT.equals(action)) select(intent.getStringExtra("station"));
         return START_NOT_STICKY;
     }
     private void cancelPending() { generation++; if(retry!=null) handler.removeCallbacks(retry); retry=null; }
@@ -130,6 +143,7 @@ public final class PlaybackService extends Service {
     private void startStation(String id) {
         if(gate.locked()) return;
         stopped=true; cancelPending(); player.stop(); current=find(id); attempts=new StreamAttempts(); stopped=false;
+        if(current!=null) getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).edit().putString("last_station_id",current.id).apply();
         playAttempt();
     }
     private void playAttempt() {

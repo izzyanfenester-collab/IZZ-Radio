@@ -30,7 +30,14 @@ public final class MainActivity extends AppCompatActivity {
         super.onCreate(saved);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         buildUi();
-        if(saved==null) ContextCompat.startForegroundService(this,new Intent(this,PlaybackService.class).setAction(PlaybackService.LAUNCH));
+        if(saved==null && (getIntent()==null || !getIntent().getBooleanExtra("wake_ui_only",false))) {
+            Intent serviceIntent=new Intent(this,PlaybackService.class).setAction(PlaybackService.LAUNCH);
+            if(getIntent()!=null && getIntent().getBooleanExtra("auto_resume_last",false)) {
+                String last=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getString("last_station_id","");
+                if(last!=null && !last.isEmpty()) serviceIntent.putExtra("resume_station",last);
+            }
+            ContextCompat.startForegroundService(this,serviceIntent);
+        }
         clockMode=saved!=null && saved.getBoolean("clock"); showClock(clockMode);
         if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},4);
     }
