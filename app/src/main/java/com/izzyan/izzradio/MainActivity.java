@@ -44,7 +44,16 @@ public final class MainActivity extends AppCompatActivity {
         AspectFrame frame=new AspectFrame(this); setContentView(frame);
         FrameLayout content=new FrameLayout(this); content.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); frame.addView(content);
         dashboard=new LinearLayout(this); dashboard.setOrientation(LinearLayout.VERTICAL); dashboard.setPadding(dp(18),dp(8),dp(18),dp(8)); dashboard.setBackgroundColor(0xff080f1d); content.addView(dashboard,new FrameLayout.LayoutParams(-1,-1));
-        TextView title=text("IZZ Radio — Malaysia & Singapore Radio",20,0xffd3dbe8); title.setTypeface(null,Typeface.BOLD); dashboard.addView(title,new LinearLayout.LayoutParams(-1,dp(36)));
+        LinearLayout titleRow=new LinearLayout(this); titleRow.setGravity(Gravity.CENTER_VERTICAL); dashboard.addView(titleRow,new LinearLayout.LayoutParams(-1,dp(40)));
+        TextView title=text("IZZ Radio — Malaysia & Singapore Radio",20,0xffd3dbe8); title.setTypeface(null,Typeface.BOLD); titleRow.addView(title,new LinearLayout.LayoutParams(0,-1,1));
+        Switch autoLaunch=new Switch(this); autoLaunch.setText("Auto-launch on boot"); autoLaunch.setTextColor(0xffb9c7d9); autoLaunch.setTextSize(13); autoLaunch.setPadding(dp(8),0,0,0);
+        android.content.SharedPreferences prefs=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE);
+        autoLaunch.setChecked(prefs.getBoolean("auto_launch_boot",false));
+        autoLaunch.setOnCheckedChangeListener((button,checked)->{
+            prefs.edit().putBoolean("auto_launch_boot",checked).apply();
+            Toast.makeText(this,checked?"Auto-launch enabled":"Auto-launch disabled",Toast.LENGTH_SHORT).show();
+        });
+        titleRow.addView(autoLaunch,new LinearLayout.LayoutParams(-2,-1));
         message=text("Doa Menaiki Kenderaan • select a station to queue",12,0xff98a9c4); dashboard.addView(message,new LinearLayout.LayoutParams(-1,dp(26))); message.setContentDescription("Playback status. Tap to resume the doa if paused."); message.setOnClickListener(v->{ if(service!=null) service.resumeDoa(); });
         LinearLayout panes=new LinearLayout(this); dashboard.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         List<Station> catalog=Station.load(this);

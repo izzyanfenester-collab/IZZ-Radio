@@ -9,6 +9,11 @@ public final class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (intent == null || !Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) return;
 
+        boolean enabled = context
+                .getSharedPreferences("izz_radio_prefs", Context.MODE_PRIVATE)
+                .getBoolean("auto_launch_boot", false);
+        if (!enabled) return;
+
         Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         if (launch == null) return;
 
@@ -17,7 +22,7 @@ public final class BootReceiver extends BroadcastReceiver {
             context.startActivity(launch);
         } catch (Exception ignored) {
             // Some Android builds restrict background activity launches.
-            // The app remains manually launchable and will not loop/relaunch.
+            // Manual launch remains available and no relaunch loop is used.
         }
     }
 }
