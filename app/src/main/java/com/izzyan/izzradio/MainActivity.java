@@ -58,7 +58,19 @@ public final class MainActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(64)); rp.bottomMargin=dp(8); list.addView(row,rp); cards.put(s.id,row);
                 ImageView logo=new ImageView(this); logo.setScaleType(ImageView.ScaleType.FIT_CENTER); logo.setContentDescription(s.name+" artwork"); row.addView(logo,new LinearLayout.LayoutParams(dp(48),dp(48)));
                 if(s.localLogo.equals("logo_suria")) logo.setImageResource(R.drawable.logo_suria);
-                else { String artwork=s.logo; if(artwork.isEmpty() && !s.logoPage.isEmpty()) artwork=android.net.Uri.parse(s.logoPage).buildUpon().path("/favicon.ico").clearQuery().fragment(null).build().toString(); Glide.with(this).load(artwork).placeholder(R.drawable.ic_radio).error(R.drawable.ic_radio).into(logo); }
+                else {
+                    String artwork=s.logo;
+                    if(artwork.isEmpty() && !s.logoPage.isEmpty()) {
+                        artwork="https://www.google.com/s2/favicons?sz=128&domain_url="+android.net.Uri.encode(s.logoPage);
+                    }
+                    Glide.with(this)
+                            .load(artwork)
+                            .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.ALL)
+                            .placeholder(R.drawable.ic_radio)
+                            .error(R.drawable.ic_radio)
+                            .dontAnimate()
+                            .into(logo);
+                }
                 LinearLayout labels=new LinearLayout(this); labels.setOrientation(LinearLayout.VERTICAL); labels.setPadding(dp(10),0,dp(4),0); row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
                 TextView name=text(s.name,16,0xffd7dfeb); name.setMaxLines(1); name.setEllipsize(android.text.TextUtils.TruncateAt.END); labels.addView(name); labels.addView(text(country,11,0xff8191a9));
                 TextView play=text("▶",22,0xff9cabc4); row.addView(play); row.setContentDescription("Play "+s.name+", "+country); row.setFocusable(true);
