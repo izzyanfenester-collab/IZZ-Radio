@@ -16,15 +16,15 @@ Playback is owned by a foreground Media3 service. Fresh activity launches send a
 
 Both screens use a centered measured 16:9 frame. Clock brightness is 10%, restored on returning to the dashboard. Clock mode alone keeps the screen awake.
 
-## Bundled asset limitations
+## Bundled assets
 
-Both old base64 placeholders have been removed. The original Suria logo was shown inline in chat, but its binary attachment was not available to the execution workspace. The current `logo_suria.jpg` remains the blank recovery from the truncated placeholder, pending the original JPG upload. It has not been presented as a successful replacement.
+Both old base64 placeholders have been removed. The valid 128×128 JPEG from commit `448a3fb` at `assets/suria_logo.jpg` is copied unchanged into `app/src/main/res/drawable-nodpi/logo_suria.jpg`. Suria FM uses `R.drawable.logo_suria` directly, without a network artwork request.
 
 The doa MP3 is now the original uploaded binary, copied unchanged to `app/src/main/res/raw/doa_menaiki_kenderaan.mp3`. Its duration is 17.528163 seconds and FFmpeg decodes the complete recording with strict error checking and no errors. The old MP3 base64 placeholder has been removed.
 
 ## Device acceptance
 
-All 11 host tests pass: queuing, reset, bounded retries, fresh-launch service command, the 46-station catalog (28 Malaysia / 18 Singapore), and 16:9 measurement on three screen shapes. The connected `DoaPlaybackTest` also passed on the API 28 software emulator: the actual Media3 player decoded through the final audio, reached `STATE_ENDED` with no decoder errors, and only then prepared the latest queued station (Suria FM). The emulator ran with host audio output disabled, so this verifies decoder/playback completion and gating, not audible hardware output or broadcaster availability.
+All 11 host tests pass: queuing, reset, bounded retries, fresh-launch service command, the 46-station catalog (28 Malaysia / 18 Singapore), and 16:9 measurement on three screen shapes. Both connected `DoaPlaybackTest` tests passed on the API 28 software emulator. The Suria test verifies Android JPEG decoding, dimensions, FIT_CENTER, the displayed local drawable pixels and the original yellow artwork instead of the blank placeholder. The playback test verifies that the actual Media3 player decoded through the final audio, reached `STATE_ENDED` with no decoder errors, and only then prepared the latest queued station (Suria FM). The emulator ran with host audio output disabled, so this verifies decoder/playback completion and gating, not audible hardware output or broadcaster availability.
 
 Run the device test with an attached emulator/device using `./gradlew :app:connectedDebugAndroidTest --max-workers=2`. The instrumentation runner and test live under `app/src/androidTest`. The test observes normal playback completion; it does not seek, speed up, or simulate the end callback. The built APK was checked to contain the original MP3 byte-for-byte and `apksigner verify --verbose` verified its v2 signature.
 

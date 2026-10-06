@@ -17,6 +17,31 @@ import static org.junit.Assert.*;
 /** Exercises the real Android decoder/player, not a simulated completion callback. */
 @RunWith(AndroidJUnit4.class)
 public class DoaPlaybackTest {
+    @Test public void suriaCardDisplaysBundledOriginalLogo() throws Exception {
+        Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+        try(ActivityScenario<MainActivity> activity=ActivityScenario.launch(MainActivity.class)) {
+            activity.onActivity(a->{
+                android.widget.LinearLayout card=(android.widget.LinearLayout)find(a.getWindow().getDecorView(),"Play Suria FM, Malaysia");
+                assertNotNull("Suria card is present",card);
+                android.widget.ImageView image=(android.widget.ImageView)card.getChildAt(0);
+                assertEquals("Suria FM artwork",image.getContentDescription().toString());
+                assertEquals(android.widget.ImageView.ScaleType.FIT_CENTER,image.getScaleType());
+                assertTrue(image.getDrawable() instanceof android.graphics.drawable.BitmapDrawable);
+                android.graphics.Bitmap displayed=((android.graphics.drawable.BitmapDrawable)image.getDrawable()).getBitmap();
+                android.graphics.Bitmap bundled=android.graphics.BitmapFactory.decodeResource(a.getResources(),R.drawable.logo_suria);
+                assertNotNull("JPEG decodes on Android",bundled);
+                assertEquals(128,bundled.getWidth()); assertEquals(128,bundled.getHeight());
+                // Compare using Android's drawable decoder; BitmapFactory can use different JPEG chroma upsampling.
+                android.graphics.Bitmap drawableReference=((android.graphics.drawable.BitmapDrawable)androidx.core.content.res.ResourcesCompat.getDrawable(a.getResources(),R.drawable.logo_suria,a.getTheme())).getBitmap();
+                android.graphics.Bitmap actualPixels=displayed.copy(android.graphics.Bitmap.Config.ARGB_8888,false);
+                android.graphics.Bitmap expectedPixels=drawableReference.copy(android.graphics.Bitmap.Config.ARGB_8888,false);
+                assertTrue("Station card displays the local bundled pixels",actualPixels.sameAs(expectedPixels));
+                int pixel=actualPixels.getPixel(10,10);
+                assertTrue("Original artwork is yellow, not the blank placeholder",android.graphics.Color.red(pixel)>150 && android.graphics.Color.green(pixel)>80);
+                actualPixels.recycle(); expectedPixels.recycle(); bundled.recycle();
+            });
+        } finally { context.stopService(new Intent(context,PlaybackService.class)); }
+    }
     @Test public void freshLaunchPlaysCompleteDoaBeforeLatestQueuedStation() throws Exception {
         Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
         AtomicReference<PlaybackService> service=new AtomicReference<>();
