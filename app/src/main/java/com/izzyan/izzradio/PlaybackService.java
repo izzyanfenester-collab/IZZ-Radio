@@ -30,6 +30,30 @@ public final class PlaybackService extends Service {
     private String status="Preparing doa…";
     private boolean stopped;
     private boolean initialized;
+    private boolean screenWasOff;
+    private boolean wakeReceiverRegistered;
+    private final BroadcastReceiver wakeReceiver=new BroadcastReceiver() {
+        @Override public void onReceive(Context context,Intent intent) {
+            if(intent==null) return;
+            String action=intent.getAction();
+            if(Intent.ACTION_SCREEN_OFF.equals(action)) {
+                screenWasOff=true;
+                return;
+            }
+            if((Intent.ACTION_SCREEN_ON.equals(action) || Intent.ACTION_USER_PRESENT.equals(action)) && screenWasOff) {
+                screenWasOff=false;
+                boolean enabled=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getBoolean("auto_launch_wake",false);
+                if(!enabled) return;
+                Intent launch=getPackageManager().getLaunchIntentForPackage(getPackageName());
+                if(launch==null) return;
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                launch.putExtra("wake_launch",true);
+                try { startActivity(launch); } catch(Exception ignored) {
+                    // Some Android builds block background activity starts.
+                }
+            }
+        }
+    };
     boolean initialized() { return initialized; }
     void resumeDoa() { if(gate.locked() && initialized) player.play(); }
     private Runnable retry;
@@ -41,6 +65,12 @@ public final class PlaybackService extends Service {
     String status() { return status; }
     @Override public void onCreate() {
         super.onCreate(); stations=Station.load(this);
+        IntentFilter wakeFilter=new IntentFilter();
+        wakeFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        wakeFilter.addAction(Intent.ACTION_SCREEN_ON);
+        wakeFilter.addAction(Intent.ACTION_USER_PRESENT);
+        androidx.core.content.ContextCompat.registerReceiver(this,wakeReceiver,wakeFilter,androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);
+        wakeReceiverRegistered=true;
         if(Build.VERSION.SDK_INT>=26) { NotificationChannel channel=new NotificationChannel("playback","Radio playback",NotificationManager.IMPORTANCE_LOW); getSystemService(NotificationManager.class).createNotificationChannel(channel); }
         DefaultHttpDataSource.Factory http=new DefaultHttpDataSource.Factory().setConnectTimeoutMs(12000).setReadTimeoutMs(25000).setAllowCrossProtocolRedirects(true).setUserAgent("IZZ-Radio/1.7");
         player=new ExoPlayer.Builder(this).setMediaSourceFactory(new DefaultMediaSourceFactory(this).setDataSourceFactory(new androidx.media3.datasource.DefaultDataSource.Factory(this,http)).setLoadErrorHandlingPolicy(new DefaultLoadErrorHandlingPolicy(0))).build();
@@ -128,5 +158,9 @@ public final class PlaybackService extends Service {
         return new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Doa":current.name).setContentText(status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session)).build();
     }
     private void publish() { for(Observer o:new ArrayList<>(observers)) o.changed(); if(!stopped) getSystemService(NotificationManager.class).notify(17,notification()); }
-    @Override public void onDestroy() { stopped=true; cancelPending(); session.release(); player.release(); super.onDestroy(); }
+    @Override public void onDestroy() {
+        stopped=true; cancelPending();
+        if(wakeReceiverRegistered) { try { unregisterReceiver(wakeReceiver); } catch(Exception ignored) {} wakeReceiverRegistered=false; }
+        session.release(); player.release(); super.onDestroy();
+    }
 }
