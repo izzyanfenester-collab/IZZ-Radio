@@ -12,7 +12,7 @@ This repository is for an Android-only radio app. Build the app described in COD
 - Lock the whole app to landscape.
 - Render radio-selection and clock screens in a centered 16:9 content area, with black letterbox/pillarbox space on other aspect ratios. Never stretch the UI.
 - Radio selection: dark premium dashboard; Malaysia left column, Singapore right column; station-specific logo, station name and play affordance.
-- Clock screen: pure black background, dim dark-blue clock suitable for night driving, day/date/AM-PM/seconds and current station name under the clock.
+- Clock screen: pure black background, DS-Digital soft green LED (#39E639) clock suitable for night driving, day/date/AM-PM/seconds and current station name under the clock.
 - Keep screen awake in clock mode and lower screen brightness to about 8–12%.
 - Tap clock to return to station list. Long-press may stop playback.
 

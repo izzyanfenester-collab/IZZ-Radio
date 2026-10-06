@@ -28,10 +28,10 @@ Read AGENTS.md first. Treat it as the product contract.
 
 ## Clock design
 - Pure black background.
-- Dim dark-blue digits; avoid bright cyan/electric blue.
+- DS-Digital soft green LED digits (#39E639) with a subtle dark-green glow.
 - Large HH:mm, seconds smaller at the side.
 - AM/PM indicator.
-- MON–SUN row with current day highlighted in the same dim blue.
+- MON–SUN row with current day highlighted in the same soft green.
 - dd MM yyyy below.
 - Current station name centered below the clock in soft grey.
 - Brightness about 0.08 to 0.12 while this screen is active.
@@ -74,7 +74,7 @@ Create .github/workflows/android-build.yml:
 - Tapping during doa queues rather than interrupts.
 - 46 stations appear: 28 Malaysia, 18 Singapore.
 - Both screens are 16:9 landscape and do not stretch.
-- Clock is dim dark blue on black.
+- Clock uses DS-Digital soft green LED digits on black.
 - Background playback works via foreground service.
 - Primary/fallback logic is present.
 - GitHub Actions workflow is valid.
