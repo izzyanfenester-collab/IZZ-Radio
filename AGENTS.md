@@ -25,8 +25,8 @@ This repository is for an Android-only radio app. Build the app described in COD
 - Add a low-priority playback notification with Stop action.
 
 ## Assets
-- Decode assets/doa_menaiki_kenderaan.mp3.b64 into app/src/main/res/raw/doa_menaiki_kenderaan.mp3.
-- Decode assets/suria_logo.jpg.b64 into app/src/main/res/drawable-nodpi/logo_suria.jpg.
+- Use the original binary at app/src/main/res/raw/doa_menaiki_kenderaan.mp3; do not regenerate it from old base64 placeholders.
+- Store the supplied original Suria artwork at app/src/main/res/drawable-nodpi/logo_suria.jpg; do not reconstruct it from truncated base64.
 - Suria must use the local bundled artwork.
 - Other station logos may be loaded remotely with a safe vector radio-icon fallback.
 

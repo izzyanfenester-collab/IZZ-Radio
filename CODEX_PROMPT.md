@@ -24,7 +24,7 @@ Read AGENTS.md first. Treat it as the product contract.
 - Scroll each pane if needed.
 - Every station card shows station-specific logo/artwork, station name, country label and a play icon.
 - Current playing station should be visually indicated.
-- Use the local Suria artwork after decoding assets/suria_logo.jpg.b64.
+- Use the original local Suria artwork at app/src/main/res/drawable-nodpi/logo_suria.jpg.
 
 ## Clock design
 - Pure black background.
