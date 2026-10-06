@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.izzyan.izzradio'
+    compileSdk 35
+    buildToolsVersion "35.0.0"
+    defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 17; versionName '1.7'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    testOptions { unitTests.includeAndroidResources = true }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/stations')
+}
+tasks.register('copyStations', Copy) { from rootProject.file('stations.json'); into layout.buildDirectory.dir('generated/stations') }
+tasks.named('preBuild').configure { dependsOn 'copyStations' }
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.15.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.media3:media3-exoplayer:1.5.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.5.1'
+    implementation 'androidx.media3:media3-session:1.5.1'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+}

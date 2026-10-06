@@ -5,7 +5,7 @@ Final behaviour:
 - On every fresh app launch, any existing radio playback is stopped and the bundled **Doa Menaiki Kenderaan** autoplays.
 - A station may be selected while the doa is playing, but **radio playback cannot start until the doa finishes**. The latest selected station is queued and starts automatically after completion.
 - Radio screen uses Malaysia/Singapore two-column selection with station artwork.
-- Digital clock uses black background with dim dark-blue digits for night driving.
+- Digital clock uses black background with DS-Digital soft green LED (#39E639) digits for night driving.
 - Current station name appears below the clock.
 - Player includes current primary + fallback stream URLs, HLS support, redirect handling, network timeouts and automatic retry/fallback.
 
