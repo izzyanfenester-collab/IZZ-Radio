@@ -70,12 +70,16 @@ public final class MainActivity extends AppCompatActivity {
         Typeface digitalFont;
         try { digitalFont=Typeface.createFromAsset(getAssets(),"fonts/ds_digital.ttf"); }
         catch(Exception ignored) { digitalFont=Typeface.MONOSPACE; }
-        hours=text("",108,0xff152b49); hours.setTypeface(digitalFont); digits.addView(hours);
-        LinearLayout side=new LinearLayout(this); side.setOrientation(LinearLayout.VERTICAL); side.setPadding(dp(16),0,0,0); digits.addView(side); seconds=text("",36,0xff152b49); seconds.setTypeface(digitalFont); ampm=text("",22,0xff152b49); ampm.setTypeface(digitalFont); side.addView(seconds); side.addView(ampm);
+        final int ledGreen=0xff39e639;
+        hours=text("",108,ledGreen); hours.setTypeface(digitalFont); hours.setShadowLayer(dp(5),0,0,0xff0d6b18); digits.addView(hours);
+        LinearLayout side=new LinearLayout(this); side.setOrientation(LinearLayout.VERTICAL); side.setPadding(dp(16),0,0,0); digits.addView(side);
+        seconds=text("",36,ledGreen); seconds.setTypeface(digitalFont); seconds.setShadowLayer(dp(3),0,0,0xff0d6b18);
+        ampm=text("",22,ledGreen); ampm.setTypeface(digitalFont); ampm.setShadowLayer(dp(2),0,0,0xff0d6b18);
+        side.addView(seconds); side.addView(ampm);
         LinearLayout days=new LinearLayout(this); days.setGravity(Gravity.CENTER); clock.addView(days);
-        for(String day:new String[]{"MON","TUE","WED","THU","FRI","SAT","SUN"}) { TextView tv=text(day,16,0xff0a101a); tv.setTypeface(digitalFont); tv.setPadding(dp(10),dp(8),dp(10),dp(8)); days.addView(tv); weekdays.add(tv); }
-        date=text("",26,0xff152b49); date.setTypeface(digitalFont); date.setGravity(Gravity.CENTER); clock.addView(date);
-        stationLabel=text("",18,0xff6e737c); stationLabel.setPadding(0,dp(14),0,0); stationLabel.setGravity(Gravity.CENTER); clock.addView(stationLabel);
+        for(String day:new String[]{"MON","TUE","WED","THU","FRI","SAT","SUN"}) { TextView tv=text(day,16,0xff102314); tv.setTypeface(digitalFont); tv.setPadding(dp(10),dp(8),dp(10),dp(8)); days.addView(tv); weekdays.add(tv); }
+        date=text("",26,ledGreen); date.setTypeface(digitalFont); date.setShadowLayer(dp(2),0,0,0xff0d6b18); date.setGravity(Gravity.CENTER); clock.addView(date);
+        stationLabel=text("",26,0xffd2d6d9); stationLabel.setPadding(0,dp(16),0,0); stationLabel.setGravity(Gravity.CENTER); stationLabel.setTypeface(null,Typeface.BOLD); clock.addView(stationLabel);
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
         updateClock();
     }
@@ -87,6 +91,6 @@ public final class MainActivity extends AppCompatActivity {
         if(current==null && !service.doaPlaying()) showClock(false);
     }
     private void showClock(boolean value) { clockMode=value; dashboard.setVisibility(value?View.GONE:View.VISIBLE); clock.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
-    private void updateClock() { if(hours==null) return; Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?0xff152b49:0xff0a101a); }
+    private void updateClock() { if(hours==null) return; Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?0xff39e639:0xff102314); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
