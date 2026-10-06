@@ -71,15 +71,15 @@ public final class MainActivity extends AppCompatActivity {
         try { digitalFont=Typeface.createFromAsset(getAssets(),"fonts/ds_digital.ttf"); }
         catch(Exception ignored) { digitalFont=Typeface.MONOSPACE; }
         final int ledGreen=0xff39e639;
-        hours=text("",108,ledGreen); hours.setTypeface(digitalFont); hours.setShadowLayer(dp(5),0,0,0xff0d6b18); digits.addView(hours);
+        hours=text("",216,ledGreen); hours.setTypeface(digitalFont); hours.setShadowLayer(dp(5),0,0,0xff0d6b18); digits.addView(hours);
         LinearLayout side=new LinearLayout(this); side.setOrientation(LinearLayout.VERTICAL); side.setPadding(dp(16),0,0,0); digits.addView(side);
-        seconds=text("",36,ledGreen); seconds.setTypeface(digitalFont); seconds.setShadowLayer(dp(3),0,0,0xff0d6b18);
-        ampm=text("",22,ledGreen); ampm.setTypeface(digitalFont); ampm.setShadowLayer(dp(2),0,0,0xff0d6b18);
+        seconds=text("",72,ledGreen); seconds.setTypeface(digitalFont); seconds.setShadowLayer(dp(3),0,0,0xff0d6b18);
+        ampm=text("",44,ledGreen); ampm.setTypeface(digitalFont); ampm.setShadowLayer(dp(2),0,0,0xff0d6b18);
         side.addView(seconds); side.addView(ampm);
         LinearLayout days=new LinearLayout(this); days.setGravity(Gravity.CENTER); clock.addView(days);
-        for(String day:new String[]{"MON","TUE","WED","THU","FRI","SAT","SUN"}) { TextView tv=text(day,16,0xff102314); tv.setTypeface(digitalFont); tv.setPadding(dp(10),dp(8),dp(10),dp(8)); days.addView(tv); weekdays.add(tv); }
-        date=text("",26,ledGreen); date.setTypeface(digitalFont); date.setShadowLayer(dp(2),0,0,0xff0d6b18); date.setGravity(Gravity.CENTER); clock.addView(date);
-        stationLabel=text("",26,0xffd2d6d9); stationLabel.setPadding(0,dp(16),0,0); stationLabel.setGravity(Gravity.CENTER); stationLabel.setTypeface(null,Typeface.BOLD); clock.addView(stationLabel);
+        for(String day:new String[]{"MON","TUE","WED","THU","FRI","SAT","SUN"}) { TextView tv=text(day,32,0xff102314); tv.setTypeface(digitalFont); tv.setPadding(dp(10),dp(8),dp(10),dp(8)); days.addView(tv); weekdays.add(tv); }
+        date=text("",52,ledGreen); date.setTypeface(digitalFont); date.setShadowLayer(dp(2),0,0,0xff0d6b18); date.setGravity(Gravity.CENTER); clock.addView(date);
+        stationLabel=text("",52,0xffd2d6d9); stationLabel.setPadding(0,dp(16),0,0); stationLabel.setGravity(Gravity.CENTER); stationLabel.setTypeface(null,Typeface.BOLD); clock.addView(stationLabel);
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
         updateClock();
     }
