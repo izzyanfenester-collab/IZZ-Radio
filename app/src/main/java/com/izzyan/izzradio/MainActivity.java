@@ -16,6 +16,8 @@ public final class MainActivity extends AppCompatActivity {
     private PlaybackService service;
     private boolean bound,clockMode,wasPlaying;
     private LinearLayout dashboard,clock;
+    private ImageView selectionWallpaper;
+    private View selectionShade;
     private TextView message,hours,seconds,ampm,date,stationLabel;
     private int clockColor=0xff39e639;
     private final List<TextView> weekdays=new ArrayList<>();
@@ -116,8 +118,8 @@ public final class MainActivity extends AppCompatActivity {
         AspectFrame frame=new AspectFrame(this); setContentView(frame);
         FrameLayout content=new FrameLayout(this); content.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); frame.addView(content);
 
-        ImageView wallpaper=new ImageView(this); wallpaper.setImageResource(R.drawable.selection_wallpaper); wallpaper.setScaleType(ImageView.ScaleType.CENTER_CROP); content.addView(wallpaper,new FrameLayout.LayoutParams(-1,-1));
-        View shade=new View(this); shade.setBackgroundColor(0x66030a12); content.addView(shade,new FrameLayout.LayoutParams(-1,-1));
+        selectionWallpaper=new ImageView(this); selectionWallpaper.setImageResource(R.drawable.radio_selector_wallpaper); selectionWallpaper.setScaleType(ImageView.ScaleType.CENTER_CROP); content.addView(selectionWallpaper,new FrameLayout.LayoutParams(-1,-1));
+        selectionShade=new View(this); selectionShade.setBackgroundColor(0x59030a12); content.addView(selectionShade,new FrameLayout.LayoutParams(-1,-1));
 
         dashboard=new LinearLayout(this); dashboard.setOrientation(LinearLayout.VERTICAL); dashboard.setPadding(dp(24),dp(12),dp(24),dp(12)); dashboard.setBackgroundColor(0x00000000); content.addView(dashboard,new FrameLayout.LayoutParams(-1,-1));
         clockColor=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getInt("clock_color",0xff39e639);
@@ -190,7 +192,7 @@ public final class MainActivity extends AppCompatActivity {
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
         if(current==null && !service.doaPlaying()) showClock(false);
     }
-    private void showClock(boolean value) { clockMode=value; dashboard.setVisibility(value?View.GONE:View.VISIBLE); clock.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clock.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
     private void updateClock() { if(hours==null) return; Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }

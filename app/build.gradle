@@ -3,7 +3,7 @@ android {
     namespace 'com.izzyan.izzradio'
     compileSdk 35
     buildToolsVersion "35.0.0"
-    defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 24; versionName '1.19'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
+    defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 25; versionName '1.20'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     testOptions { unitTests.includeAndroidResources = true }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/stations')
