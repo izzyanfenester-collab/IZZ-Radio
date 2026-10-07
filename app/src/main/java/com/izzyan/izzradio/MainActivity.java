@@ -90,18 +90,34 @@ public final class MainActivity extends AppCompatActivity {
         }
         panel.addView(group);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        ScrollView settingsScroll=new ScrollView(this);
+        settingsScroll.setFillViewport(true);
+        settingsScroll.setVerticalScrollBarEnabled(true);
+        settingsScroll.addView(panel,new ScrollView.LayoutParams(-1,-2));
+
+        androidx.appcompat.app.AlertDialog dialog=new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("IZZ Radio Settings")
-                .setView(panel)
+                .setView(settingsScroll)
                 .setPositiveButton("Done",null)
-                .show();
+                .create();
+        dialog.setOnShowListener(d->{
+            Window w=dialog.getWindow();
+            if(w!=null) {
+                WindowManager.LayoutParams lp=new WindowManager.LayoutParams();
+                lp.copyFrom(w.getAttributes());
+                lp.width=Math.min(dp(790),getResources().getDisplayMetrics().widthPixels-dp(48));
+                lp.height=Math.min(dp(510),getResources().getDisplayMetrics().heightPixels-dp(36));
+                w.setAttributes(lp);
+            }
+        });
+        dialog.show();
     }
     private void buildUi() {
         AspectFrame frame=new AspectFrame(this); setContentView(frame);
         FrameLayout content=new FrameLayout(this); content.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); frame.addView(content);
 
         ImageView wallpaper=new ImageView(this); wallpaper.setImageResource(R.drawable.selection_wallpaper); wallpaper.setScaleType(ImageView.ScaleType.CENTER_CROP); content.addView(wallpaper,new FrameLayout.LayoutParams(-1,-1));
-        View shade=new View(this); shade.setBackgroundColor(0x99030a12); content.addView(shade,new FrameLayout.LayoutParams(-1,-1));
+        View shade=new View(this); shade.setBackgroundColor(0x66030a12); content.addView(shade,new FrameLayout.LayoutParams(-1,-1));
 
         dashboard=new LinearLayout(this); dashboard.setOrientation(LinearLayout.VERTICAL); dashboard.setPadding(dp(24),dp(12),dp(24),dp(12)); dashboard.setBackgroundColor(0x00000000); content.addView(dashboard,new FrameLayout.LayoutParams(-1,-1));
         clockColor=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getInt("clock_color",0xff39e639);
