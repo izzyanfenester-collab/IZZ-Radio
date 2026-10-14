@@ -50,13 +50,13 @@ final class ClockExtras {
     ClockExtras(MainActivity a,FrameLayout holder) {
         activity=a;stage=holder;
         hijriLabel=new TextView(a);
-        hijriLabel.setTextSize(18);
+        hijriLabel.setTextSize(22);
         hijriLabel.setGravity(Gravity.CENTER);
         hijriLabel.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
         hijriLabel.setTextColor(0xff9bdcab);
         hijriLabel.setBackgroundColor(0xcc05090b);
         hijriLabel.setPadding(dp(16),dp(3),dp(16),dp(4));
-        FrameLayout.LayoutParams title=new FrameLayout.LayoutParams(-2,dp(34),Gravity.TOP|Gravity.CENTER_HORIZONTAL);
+        FrameLayout.LayoutParams title=new FrameLayout.LayoutParams(-2,dp(42),Gravity.TOP|Gravity.CENTER_HORIZONTAL);
         title.topMargin=dp(4);stage.addView(hijriLabel,title);
 
         moon=new MoonPhaseView(a);
