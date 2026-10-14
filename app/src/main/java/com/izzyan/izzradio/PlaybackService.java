@@ -29,6 +29,7 @@ public final class PlaybackService extends Service {
     private StreamAttempts attempts=new StreamAttempts();
     private String status="Preparing doa…";
     private String nowPlaying="";
+    private Runnable metadataFallback;
     private boolean stopped;
     private boolean initialized;
     private boolean screenWasOff;
@@ -75,6 +76,45 @@ public final class PlaybackService extends Service {
     boolean radioPlaying() { return !gate.locked() && current!=null && player.isPlaying(); }
     String status() { return status; }
     String nowPlaying() { return nowPlaying; }
+
+    private String cleanMetadataText(CharSequence value) {
+        if(value==null) return "";
+        String text=value.toString().replace("\u0000"," ").replaceAll("\\s+"," ").trim();
+        if(text.equalsIgnoreCase("null") || text.equalsIgnoreCase("unknown")) return "";
+        return text;
+    }
+    private void cancelMetadataFallback() {
+        if(metadataFallback!=null) handler.removeCallbacks(metadataFallback);
+        metadataFallback=null;
+    }
+    private void acceptNowPlaying(CharSequence artistValue,CharSequence titleValue) {
+        if(gate.locked() || current==null) return;
+        String artist=cleanMetadataText(artistValue);
+        String title=cleanMetadataText(titleValue);
+        if(title.isEmpty()) return;
+        if(title.equalsIgnoreCase(current.name) || title.equalsIgnoreCase(current.country)) return;
+        String combined=artist.isEmpty()?title:artist+" — "+title;
+        if(combined.equalsIgnoreCase(current.name) || combined.equalsIgnoreCase(current.country)) return;
+        if(combined.length()>140) combined=combined.substring(0,137)+"…";
+        String display="♪ "+combined;
+        if(display.equals(nowPlaying)) return;
+        cancelMetadataFallback();
+        nowPlaying=display;
+        publish();
+    }
+    private void scheduleMetadataFallback() {
+        cancelMetadataFallback();
+        metadataFallback=()->{
+            metadataFallback=null;
+            if(stopped || gate.locked() || current==null) return;
+            if(nowPlaying==null || nowPlaying.isEmpty() || nowPlaying.contains("Getting song title") || nowPlaying.contains("Connecting")) {
+                nowPlaying="♪ Live Radio • song title not provided by station";
+                publish();
+            }
+        };
+        handler.postDelayed(metadataFallback,12000L);
+    }
+
     @Override public void onCreate() {
         super.onCreate(); stations=Station.load(this);
         IntentFilter wakeFilter=new IntentFilter();
@@ -106,19 +146,30 @@ public final class PlaybackService extends Service {
             @Override public void onIsPlayingChanged(boolean playing) {
                 if(!gate.locked() && current!=null && playing) {
                     status="Playing "+current.name;
-                    if(nowPlaying==null || nowPlaying.trim().isEmpty()) nowPlaying="♪ Live Radio";
+                    if(nowPlaying==null || nowPlaying.trim().isEmpty() || nowPlaying.contains("Connecting")) nowPlaying="♪ Getting song title…";
+                    scheduleMetadataFallback();
+                } else if(!playing) {
+                    cancelMetadataFallback();
                 }
                 publish();
             }
             @Override public void onMediaMetadataChanged(MediaMetadata metadata) {
+                if(metadata==null) return;
+                acceptNowPlaying(metadata.artist,metadata.title);
+            }
+            @Override public void onMetadata(Metadata metadata) {
                 if(gate.locked() || current==null || metadata==null) return;
-                String title=metadata.title==null?"":metadata.title.toString().trim();
-                String artist=metadata.artist==null?"":metadata.artist.toString().trim();
-                if(title.isEmpty() || title.equalsIgnoreCase(current.name)) return;
-                String text=artist.isEmpty()?title:artist+" — "+title;
-                if(text.equals(nowPlaying)) return;
-                nowPlaying=text;
-                publish();
+                for(int i=0;i<metadata.length();i++) {
+                    Metadata.Entry entry=metadata.get(i);
+                    try {
+                        MediaMetadata.Builder builder=new MediaMetadata.Builder();
+                        entry.populateMediaMetadata(builder);
+                        MediaMetadata timed=builder.build();
+                        acceptNowPlaying(timed.artist,timed.title);
+                    } catch(Exception ignored) {
+                        // Some metadata entries do not expose title/artist fields.
+                    }
+                }
             }
         });
     }
@@ -138,7 +189,7 @@ public final class PlaybackService extends Service {
     private void cancelPending() { generation++; if(retry!=null) handler.removeCallbacks(retry); retry=null; }
     private void freshLaunch() {
         initialized=true;
-        stopped=true; cancelPending(); player.stop(); player.clearMediaItems(); current=null; nowPlaying="";
+        stopped=true; cancelPending(); cancelMetadataFallback(); player.stop(); player.clearMediaItems(); current=null; nowPlaying="";
         gate.freshLaunch(); stopped=false; status="Doa Menaiki Kenderaan • select a station to queue";
         player.setMediaItem(MediaItem.fromUri("android.resource://"+getPackageName()+"/"+R.raw.doa_menaiki_kenderaan));
         player.prepare(); player.play(); publish();
@@ -157,7 +208,7 @@ public final class PlaybackService extends Service {
     }
     private void startStation(String id) {
         if(gate.locked()) return;
-        stopped=true; cancelPending(); player.stop(); current=find(id); attempts=new StreamAttempts(); nowPlaying="♪ Connecting…"; stopped=false;
+        stopped=true; cancelPending(); cancelMetadataFallback(); player.stop(); current=find(id); attempts=new StreamAttempts(); nowPlaying="♪ Connecting…"; stopped=false;
         if(current!=null) getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).edit().putString("last_station_id",current.id).apply();
         playAttempt();
     }
@@ -179,7 +230,7 @@ public final class PlaybackService extends Service {
     void stopPlayback() {
         // Stop never unlocks or truncates the doa; discard queued radio instead.
         if(gate.locked()) { gate.clearQueue(); status="Doa playing • queued station cleared"; publish(); return; }
-        stopped=true; cancelPending(); player.stop(); player.clearMediaItems(); current=null; nowPlaying=""; status="Playback stopped"; publish(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+        stopped=true; cancelPending(); cancelMetadataFallback(); player.stop(); player.clearMediaItems(); current=null; nowPlaying=""; status="Playback stopped"; publish(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
     }
     private Notification notification() {
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
@@ -188,7 +239,7 @@ public final class PlaybackService extends Service {
     }
     private void publish() { for(Observer o:new ArrayList<>(observers)) o.changed(); if(!stopped) getSystemService(NotificationManager.class).notify(17,notification()); }
     @Override public void onDestroy() {
-        stopped=true; cancelPending();
+        stopped=true; cancelPending(); cancelMetadataFallback();
         if(wakeReceiverRegistered) { try { unregisterReceiver(wakeReceiver); } catch(Exception ignored) {} wakeReceiverRegistered=false; }
         session.release(); player.release(); super.onDestroy();
     }
