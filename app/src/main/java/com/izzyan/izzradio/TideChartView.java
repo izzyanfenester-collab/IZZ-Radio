@@ -75,6 +75,6 @@ final class TideChartView extends View {
                 txt(c,labels[labels.length-1],right,h*.94f,9,0xffa0b3bd,Paint.Align.RIGHT);
             }
         }
-        txt(c,"Model MSL • Bukan untuk navigasi",w/2,h*.985f,8,0xff879cab,Paint.Align.CENTER);
+        txt(c,"Open-Meteo MSL • Bukan untuk navigasi",w/2,h*.985f,8,0xff879cab,Paint.Align.CENTER);
     }
 }
