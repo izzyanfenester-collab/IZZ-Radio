@@ -32,26 +32,22 @@ public final class PlaybackService extends Service {
     private Runnable metadataFallback;
     private boolean stopped;
     private boolean initialized;
-    private boolean screenWasOff;
+    private WakeCycleTracker wakeTracker;
     private boolean wakeReceiverRegistered;
     private final BroadcastReceiver wakeReceiver=new BroadcastReceiver() {
         @Override public void onReceive(Context context,Intent intent) {
             if(intent==null) return;
             String action=intent.getAction();
             if(Intent.ACTION_SCREEN_OFF.equals(action)) {
-                screenWasOff=true;
+                if(wakeTracker!=null) wakeTracker.onScreenOff();
                 return;
             }
-            if((Intent.ACTION_SCREEN_ON.equals(action) || Intent.ACTION_USER_PRESENT.equals(action)) && screenWasOff) {
-                screenWasOff=false;
+            if(Intent.ACTION_SCREEN_ON.equals(action) || Intent.ACTION_USER_PRESENT.equals(action)) {
                 android.content.SharedPreferences prefs=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE);
-                if(!prefs.getBoolean("auto_launch_wake",false)) return;
+                boolean enabled=prefs.getBoolean("auto_launch_wake",false);
+                if(wakeTracker==null || !wakeTracker.onScreenOn(enabled,SystemClock.elapsedRealtime())) return;
 
-                long now=System.currentTimeMillis();
-                long lastWake=prefs.getLong("last_auto_wake_ms",0L);
-                if(now-lastWake<5000L) return;
-                prefs.edit().putLong("last_auto_wake_ms",now).apply();
-
+                // Every NEW off/on cycle works even after midnight, clock reset, or long sleep.
                 String last=prefs.getString("last_station_id","");
                 freshLaunch();
                 if(last!=null && !last.isEmpty()) select(last);
@@ -61,7 +57,7 @@ public final class PlaybackService extends Service {
                 launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 launch.putExtra("wake_ui_only",true);
                 try { startActivity(launch); } catch(Exception ignored) {
-                    // Audio sequence still runs even if this Android build blocks UI auto-launch.
+                    // UI relaunch depends on Android/OEM background-launch rules.
                 }
             }
         }
@@ -117,6 +113,8 @@ public final class PlaybackService extends Service {
 
     @Override public void onCreate() {
         super.onCreate(); stations=Station.load(this);
+        PowerManager power=(PowerManager)getSystemService(POWER_SERVICE);
+        wakeTracker=new WakeCycleTracker(power!=null && !power.isInteractive());
         IntentFilter wakeFilter=new IntentFilter();
         wakeFilter.addAction(Intent.ACTION_SCREEN_OFF);
         wakeFilter.addAction(Intent.ACTION_SCREEN_ON);
