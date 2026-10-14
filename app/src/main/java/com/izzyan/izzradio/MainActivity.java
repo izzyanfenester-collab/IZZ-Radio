@@ -46,8 +46,13 @@ public final class MainActivity extends AppCompatActivity {
         clockMode=saved!=null && saved.getBoolean("clock"); showClock(clockMode);
         if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},4);
     }
-    @Override protected void onStart() { super.onStart(); bound=bindService(new Intent(this,PlaybackService.class),connection,BIND_AUTO_CREATE); handler.post(tick); }
-    @Override protected void onStop() { handler.removeCallbacks(tick); if(service!=null) service.removeObserver(observer); if(bound) { unbindService(connection); bound=false; } service=null; super.onStop(); }
+    @Override protected void onStart() { super.onStart(); bound=bindService(new Intent(this,PlaybackService.class),connection,BIND_AUTO_CREATE); handler.post(tick); if(clockMode && clockExtras!=null) clockExtras.start(); }
+    @Override protected void onStop() { handler.removeCallbacks(tick); if(clockExtras!=null) clockExtras.stop(); if(service!=null) service.removeObserver(observer); if(bound) { unbindService(connection); bound=false; } service=null; super.onStop(); }
+    @Override protected void onDestroy() { if(clockExtras!=null) clockExtras.destroy(); super.onDestroy(); }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results) {
+        super.onRequestPermissionsResult(requestCode,permissions,results);
+        if(clockExtras!=null) clockExtras.onLocationPermissionResult(requestCode);
+    }
     @Override protected void onSaveInstanceState(Bundle state) { state.putBoolean("clock",clockMode); super.onSaveInstanceState(state); }
     private int dp(float value) { return Math.round(value*getResources().getDisplayMetrics().density); }
     private TextView text(String value,float size,int color) { TextView v=new TextView(this); v.setText(value); v.setTextColor(color); v.setTextSize(size); v.setGravity(Gravity.CENTER_VERTICAL); return v; }
@@ -199,7 +204,7 @@ public final class MainActivity extends AppCompatActivity {
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
         if(current==null && !service.doaPlaying()) showClock(false);
     }
-    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); if(clockExtras!=null) { if(value) clockExtras.start(); else clockExtras.stop(); } WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
     private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
