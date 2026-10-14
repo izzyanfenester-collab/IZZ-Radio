@@ -24,6 +24,12 @@ public final class BootReceiver extends BroadcastReceiver {
         android.content.SharedPreferences prefs=context.getSharedPreferences("izz_radio_prefs",Context.MODE_PRIVATE);
         if(!prefs.getBoolean("auto_launch_boot",false)) return;
 
+        // Some firmware sends BOOT_COMPLETED and QUICKBOOT_POWERON together.
+        // De-duplicate without tying anything to the wall-clock date.
+        long elapsed=android.os.SystemClock.elapsedRealtime();
+        long previous=prefs.getLong("last_boot_launch_elapsed_ms",-1L);
+        if(previous>=0 && elapsed>=previous && elapsed-previous<30000L) return;
+
         Intent launch=context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         if(launch==null) return;
         launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
@@ -33,6 +39,7 @@ public final class BootReceiver extends BroadcastReceiver {
 
         try {
             context.startActivity(launch);
+            prefs.edit().putLong("last_boot_launch_elapsed_ms",elapsed).apply();
         } catch(Exception ignored) {
             // Android 10+ and OEM firmware can prohibit background activity launches.
             // The head unit's built-in Auto Start feature may be required.
