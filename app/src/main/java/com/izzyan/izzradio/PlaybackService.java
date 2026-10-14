@@ -28,6 +28,7 @@ public final class PlaybackService extends Service {
     private int generation;
     private StreamAttempts attempts=new StreamAttempts();
     private String status="Preparing doa…";
+    private String nowPlaying="";
     private boolean stopped;
     private boolean initialized;
     private boolean screenWasOff;
@@ -73,6 +74,7 @@ public final class PlaybackService extends Service {
     Station station() { return current; }
     boolean radioPlaying() { return !gate.locked() && current!=null && player.isPlaying(); }
     String status() { return status; }
+    String nowPlaying() { return nowPlaying; }
     @Override public void onCreate() {
         super.onCreate(); stations=Station.load(this);
         IntentFilter wakeFilter=new IntentFilter();
@@ -102,7 +104,20 @@ public final class PlaybackService extends Service {
                 if(gate.locked()) finishDoa(true); else failedStream();
             }
             @Override public void onIsPlayingChanged(boolean playing) {
-                if(!gate.locked() && current!=null && playing) status="Playing "+current.name;
+                if(!gate.locked() && current!=null && playing) {
+                    status="Playing "+current.name;
+                    if(nowPlaying==null || nowPlaying.trim().isEmpty()) nowPlaying="♪ Live Radio";
+                }
+                publish();
+            }
+            @Override public void onMediaMetadataChanged(MediaMetadata metadata) {
+                if(gate.locked() || current==null || metadata==null) return;
+                String title=metadata.title==null?"":metadata.title.toString().trim();
+                String artist=metadata.artist==null?"":metadata.artist.toString().trim();
+                if(title.isEmpty() || title.equalsIgnoreCase(current.name)) return;
+                String text=artist.isEmpty()?title:artist+" — "+title;
+                if(text.equals(nowPlaying)) return;
+                nowPlaying=text;
                 publish();
             }
         });
@@ -123,7 +138,7 @@ public final class PlaybackService extends Service {
     private void cancelPending() { generation++; if(retry!=null) handler.removeCallbacks(retry); retry=null; }
     private void freshLaunch() {
         initialized=true;
-        stopped=true; cancelPending(); player.stop(); player.clearMediaItems(); current=null;
+        stopped=true; cancelPending(); player.stop(); player.clearMediaItems(); current=null; nowPlaying="";
         gate.freshLaunch(); stopped=false; status="Doa Menaiki Kenderaan • select a station to queue";
         player.setMediaItem(MediaItem.fromUri("android.resource://"+getPackageName()+"/"+R.raw.doa_menaiki_kenderaan));
         player.prepare(); player.play(); publish();
@@ -142,7 +157,7 @@ public final class PlaybackService extends Service {
     }
     private void startStation(String id) {
         if(gate.locked()) return;
-        stopped=true; cancelPending(); player.stop(); current=find(id); attempts=new StreamAttempts(); stopped=false;
+        stopped=true; cancelPending(); player.stop(); current=find(id); attempts=new StreamAttempts(); nowPlaying="♪ Connecting…"; stopped=false;
         if(current!=null) getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).edit().putString("last_station_id",current.id).apply();
         playAttempt();
     }
@@ -164,12 +179,12 @@ public final class PlaybackService extends Service {
     void stopPlayback() {
         // Stop never unlocks or truncates the doa; discard queued radio instead.
         if(gate.locked()) { gate.clearQueue(); status="Doa playing • queued station cleared"; publish(); return; }
-        stopped=true; cancelPending(); player.stop(); player.clearMediaItems(); current=null; status="Playback stopped"; publish(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+        stopped=true; cancelPending(); player.stop(); player.clearMediaItems(); current=null; nowPlaying=""; status="Playback stopped"; publish(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
     }
     private Notification notification() {
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,PlaybackService.class).setAction(STOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        return new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Doa":current.name).setContentText(status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session)).build();
+        return new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Doa":current.name).setContentText(current!=null && nowPlaying!=null && !nowPlaying.isEmpty()?nowPlaying:status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session)).build();
     }
     private void publish() { for(Observer o:new ArrayList<>(observers)) o.changed(); if(!stopped) getSystemService(NotificationManager.class).notify(17,notification()); }
     @Override public void onDestroy() {
