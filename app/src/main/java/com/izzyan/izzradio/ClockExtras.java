@@ -103,6 +103,12 @@ final class ClockExtras {
             } catch(Exception e) { hijriLabel.setText("KALENDAR HIJRAH  •  Tidak tersedia"); }
             moon.setInstant(System.currentTimeMillis());
         }
+        // Refresh the coastal forecast even if the car is parked and GPS is stationary.
+        if(active && !fetching && !Double.isNaN(fetchedLatitude)
+                && (!day.equals(fetchedDay)||System.currentTimeMillis()-lastRequest>=3*60*60*1000L)) {
+            String p=String.format(Locale.US,"Lokasi auto %.3f°, %.3f°",fetchedLatitude,fetchedLongitude);
+            loadForecast(fetchedLatitude,fetchedLongitude,p,day);
+        }
     }
     void start() {
         if(destroyed) return;
