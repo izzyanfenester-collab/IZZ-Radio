@@ -55,9 +55,9 @@ final class ClockExtras {
             int d=islam.get(android.icu.util.Calendar.DATE);
             int m=islam.get(android.icu.util.Calendar.MONTH);
             int y=islam.get(android.icu.util.Calendar.YEAR);
-            hijriLabel.setText("KALENDAR HIJRAH  •  "+d+" "+months[m]+" "+y+" H");
+            hijriLabel.setText(d+" "+months[m]+" "+y+" H");
         } catch(Exception e) {
-            hijriLabel.setText("KALENDAR HIJRAH  •  Tidak tersedia");
+            hijriLabel.setText("Tarikh tidak tersedia");
         }
     }
 }
