@@ -18,7 +18,7 @@ public final class MainActivity extends AppCompatActivity {
     private LinearLayout dashboard,clock;
     private ImageView selectionWallpaper;
     private View selectionShade;
-    private TextView message,hours,seconds,ampm,date,stationLabel;
+    private TextView message,hours,seconds,ampm,date,stationLabel,nowPlayingLabel;
     private int clockColor=0xff39e639;
     private final List<TextView> weekdays=new ArrayList<>();
     private final Map<String,LinearLayout> cards=new HashMap<>();
@@ -182,12 +182,13 @@ public final class MainActivity extends AppCompatActivity {
         for(String day:new String[]{"MON","TUE","WED","THU","FRI","SAT","SUN"}) { TextView tv=text(day,32,shadeColor(clockColor,0.20f)); tv.setTypeface(digitalFont); tv.setPadding(dp(10),dp(8),dp(10),dp(8)); days.addView(tv); weekdays.add(tv); }
         date=text("",52,clockColor); date.setTypeface(digitalFont); date.setShadowLayer(dp(2),0,0,glow); date.setGravity(Gravity.CENTER); clock.addView(date);
         stationLabel=text("",52,0xffd2d6d9); stationLabel.setPadding(0,dp(16),0,0); stationLabel.setGravity(Gravity.CENTER); stationLabel.setTypeface(null,Typeface.BOLD); clock.addView(stationLabel);
+        nowPlayingLabel=text("",27,0xfff0f0f0); nowPlayingLabel.setPadding(dp(28),dp(4),dp(28),0); nowPlayingLabel.setGravity(Gravity.CENTER); nowPlayingLabel.setSingleLine(true); nowPlayingLabel.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE); nowPlayingLabel.setMarqueeRepeatLimit(-1); nowPlayingLabel.setSelected(true); clock.addView(nowPlayingLabel,new LinearLayout.LayoutParams(-1,dp(42)));
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
         updateClock();
     }
     private void refresh() {
         if(service==null) return;
-        message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name);
+        message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
         boolean playing=service.radioPlaying(); if(playing && !wasPlaying) showClock(true); wasPlaying=playing;
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
         if(current==null && !service.doaPlaying()) showClock(false);
