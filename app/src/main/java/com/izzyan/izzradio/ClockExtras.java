@@ -23,7 +23,7 @@ final class ClockExtras {
     private final MainActivity activity;
     private final FrameLayout stage;
     private final TextView hijriLabel;
-    private final TideChartView tide;
+    private TideChartView tide;
     private final MoonPhaseView moon;
     private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService io=Executors.newSingleThreadExecutor();
@@ -131,10 +131,17 @@ final class ClockExtras {
     private void requestLocation() {
         if(!active || destroyed) return;
         if(!hasPermission()) {
-            tide.setStatus("Benarkan lokasi untuk graf pasang surut");
-            // The user may grant approximate location rather than precise location.
-            activity.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION},REQUEST_LOCATION);
+            boolean alreadyAsked=activity.getSharedPreferences("izz_radio_prefs",Context.MODE_PRIVATE)
+                    .getBoolean("location_permission_asked",false);
+            if(alreadyAsked) {
+                tide.setStatus("Benarkan lokasi dalam Settings Android");
+            } else {
+                tide.setStatus("Benarkan lokasi untuk graf pasang surut");
+                activity.getSharedPreferences("izz_radio_prefs",Context.MODE_PRIVATE).edit()
+                        .putBoolean("location_permission_asked",true).apply();
+                activity.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION},REQUEST_LOCATION);
+            }
             return;
         }
         locationManager=(LocationManager)activity.getSystemService(Context.LOCATION_SERVICE);
