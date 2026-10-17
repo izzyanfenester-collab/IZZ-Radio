@@ -21,7 +21,7 @@ final class ClockExtras {
     ClockExtras(MainActivity a, FrameLayout holder) {
         activity=a;
         hijriLabel=new TextView(a);
-        hijriLabel.setTextSize(44);
+        hijriLabel.setTextSize(32);
         hijriLabel.setGravity(Gravity.CENTER);
         hijriLabel.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
         hijriLabel.setTextColor(0xff9bdcab);
