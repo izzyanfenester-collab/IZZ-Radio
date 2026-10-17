@@ -16,7 +16,11 @@ public final class MainActivity extends AppCompatActivity {
     private PlaybackService service;
     private boolean bound,clockMode,wasPlaying;
     private LinearLayout dashboard,clock;
-    private TextView message,hours,seconds,ampm,date,stationLabel;
+    private FrameLayout clockStage;
+    private ClockExtras clockExtras;
+    private ImageView selectionWallpaper;
+    private View selectionShade;
+    private TextView message,hours,seconds,ampm,date,stationLabel,nowPlayingLabel;
     private int clockColor=0xff39e639;
     private final List<TextView> weekdays=new ArrayList<>();
     private final Map<String,LinearLayout> cards=new HashMap<>();
@@ -57,6 +61,7 @@ public final class MainActivity extends AppCompatActivity {
     private void applyClockColor(int color) {
         clockColor=color;
         getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).edit().putInt("clock_color",color).apply();
+        if(clockExtras!=null) clockExtras.setClockColour(color);
         if(hours==null) return;
         int glow=shadeColor(color,0.35f);
         hours.setTextColor(color); seconds.setTextColor(color); ampm.setTextColor(color); date.setTextColor(color);
@@ -116,8 +121,8 @@ public final class MainActivity extends AppCompatActivity {
         AspectFrame frame=new AspectFrame(this); setContentView(frame);
         FrameLayout content=new FrameLayout(this); content.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); frame.addView(content);
 
-        ImageView wallpaper=new ImageView(this); wallpaper.setImageResource(R.drawable.selection_wallpaper); wallpaper.setScaleType(ImageView.ScaleType.CENTER_CROP); content.addView(wallpaper,new FrameLayout.LayoutParams(-1,-1));
-        View shade=new View(this); shade.setBackgroundColor(0x66030a12); content.addView(shade,new FrameLayout.LayoutParams(-1,-1));
+        selectionWallpaper=new ImageView(this); selectionWallpaper.setImageResource(R.drawable.radio_selector_wallpaper); selectionWallpaper.setScaleType(ImageView.ScaleType.CENTER_CROP); content.addView(selectionWallpaper,new FrameLayout.LayoutParams(-1,-1));
+        selectionShade=new View(this); selectionShade.setBackgroundColor(0x59030a12); content.addView(selectionShade,new FrameLayout.LayoutParams(-1,-1));
 
         dashboard=new LinearLayout(this); dashboard.setOrientation(LinearLayout.VERTICAL); dashboard.setPadding(dp(24),dp(12),dp(24),dp(12)); dashboard.setBackgroundColor(0x00000000); content.addView(dashboard,new FrameLayout.LayoutParams(-1,-1));
         clockColor=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getInt("clock_color",0xff39e639);
@@ -165,7 +170,8 @@ public final class MainActivity extends AppCompatActivity {
                 row.setOnClickListener(v->{ if(service==null) { Toast.makeText(this,"Preparing playback…",Toast.LENGTH_SHORT).show(); return; } boolean queued=service.doaPlaying(); ContextCompat.startForegroundService(this,new Intent(this,PlaybackService.class).setAction(PlaybackService.SELECT).putExtra("station",s.id)); if(queued) Toast.makeText(this,s.name+" will start after the doa",Toast.LENGTH_SHORT).show(); });
             }
         }
-        clock=new LinearLayout(this); clock.setOrientation(LinearLayout.VERTICAL); clock.setGravity(Gravity.CENTER); clock.setBackgroundColor(0xff000000); content.addView(clock,new FrameLayout.LayoutParams(-1,-1));
+        clockStage=new FrameLayout(this); clockStage.setBackgroundColor(0xff000000); content.addView(clockStage,new FrameLayout.LayoutParams(-1,-1));
+        clock=new LinearLayout(this); clock.setOrientation(LinearLayout.VERTICAL); clock.setGravity(Gravity.CENTER); clock.setBackgroundColor(0xff000000); clockStage.addView(clock,new FrameLayout.LayoutParams(-1,-1));
         LinearLayout digits=new LinearLayout(this); digits.setGravity(Gravity.CENTER); clock.addView(digits);
         Typeface digitalFont;
         try { digitalFont=Typeface.createFromAsset(getAssets(),"fonts/ds_digital.ttf"); }
@@ -180,17 +186,20 @@ public final class MainActivity extends AppCompatActivity {
         for(String day:new String[]{"MON","TUE","WED","THU","FRI","SAT","SUN"}) { TextView tv=text(day,32,shadeColor(clockColor,0.20f)); tv.setTypeface(digitalFont); tv.setPadding(dp(10),dp(8),dp(10),dp(8)); days.addView(tv); weekdays.add(tv); }
         date=text("",52,clockColor); date.setTypeface(digitalFont); date.setShadowLayer(dp(2),0,0,glow); date.setGravity(Gravity.CENTER); clock.addView(date);
         stationLabel=text("",52,0xffd2d6d9); stationLabel.setPadding(0,dp(16),0,0); stationLabel.setGravity(Gravity.CENTER); stationLabel.setTypeface(null,Typeface.BOLD); clock.addView(stationLabel);
+        nowPlayingLabel=text("",27,0xfff0f0f0); nowPlayingLabel.setPadding(dp(28),dp(4),dp(28),0); nowPlayingLabel.setGravity(Gravity.CENTER); nowPlayingLabel.setSingleLine(true); nowPlayingLabel.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE); nowPlayingLabel.setMarqueeRepeatLimit(-1); nowPlayingLabel.setSelected(true); clock.addView(nowPlayingLabel,new LinearLayout.LayoutParams(-1,dp(42)));
+        clockExtras=new ClockExtras(this,clockStage);
+        clockExtras.setClockColour(clockColor);
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
         updateClock();
     }
     private void refresh() {
         if(service==null) return;
-        message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name);
+        message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
         boolean playing=service.radioPlaying(); if(playing && !wasPlaying) showClock(true); wasPlaying=playing;
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
         if(current==null && !service.doaPlaying()) showClock(false);
     }
-    private void showClock(boolean value) { clockMode=value; dashboard.setVisibility(value?View.GONE:View.VISIBLE); clock.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
-    private void updateClock() { if(hours==null) return; Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
+    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
