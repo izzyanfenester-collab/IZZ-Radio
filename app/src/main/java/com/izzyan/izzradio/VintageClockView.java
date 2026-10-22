@@ -138,36 +138,36 @@ final class VintageClockView extends View {
     }
     private void drawLiveStation(Canvas canvas) {
         // Preserve the gold outside bezel; replace only the old VU dial face.
-        gradient(canvas,575,331,946,513,9,0xff2a1005,0xff381708);
-        stroke(canvas,579,335,943,508,7,0xff99613a,2);
+        gradient(canvas,566,321,961,517,9,0xff2a1005,0xff381708);
+        stroke(canvas,570,325,956,511,7,0xff99613a,2);
         String shown=station.isEmpty()?"IZZ RADIO":station.toUpperCase(Locale.ROOT);
-        write(canvas,shown,760,420,56,335,CREAM,true);
+        write(canvas,shown,760,415,56,344,CREAM,true);
         paint.setColor(0xffae7848);
         paint.setStrokeWidth(1.8f);
         paint.setStyle(Paint.Style.STROKE);
-        canvas.drawLine(611,441,911,441,paint);
+        canvas.drawLine(600,441,926,441,paint);
         paint.setStyle(Paint.Style.FILL);
         String caption=song.isEmpty()?"♪ Live Radio":song;
         if(caption.startsWith("♪")) caption=caption.substring(1).trim();
         if(caption.isEmpty()) caption="Live Radio";
-        write(canvas,"♫ "+caption,760,477,24,333,0xfff4d8bd,false);
+        write(canvas,"♫ "+caption,760,476,24,354,0xfff4d8bd,false);
     }
     private void drawLiveClock(Canvas canvas,Date now) {
         boolean is24=android.text.format.DateFormat.is24HourFormat(getContext());
         String hour=new SimpleDateFormat(is24?"HH":"hh",Locale.US).format(now);
         String minute=new SimpleDateFormat("mm",Locale.US).format(now);
-        flipTile(canvas,740,642,826,726,hour);
-        flipTile(canvas,853,642,944,726,minute);
+        flipTile(canvas,720,626,838,739,hour);
+        flipTile(canvas,847,626,973,739,minute);
         // Leave hinge and the physical wood frame visible.
-        fill(canvas,832,657,853,713,4,0xff190f0c);
-        fill(canvas,839,680,847,692,4,0xffc6a583);
-        if(!is24) write(canvas,new SimpleDateFormat("a",Locale.US).format(now),845,750,15,90,0xfff1cfaa,false);
+        fill(canvas,838,650,849,713,4,0xff190f0c);
+        fill(canvas,840,680,847,692,4,0xffc6a583);
+        if(!is24) write(canvas,new SimpleDateFormat("a",Locale.US).format(now),845,760,15,90,0xfff1cfaa,false);
     }
     private void flipTile(Canvas c,float l,float t,float r,float b,String value) {
         gradient(c,l,t,r,b,8,0xff170e0f,0xff312126);
         stroke(c,l+2,t+2,r-2,b-2,7,0xff85573e,2);
         fill(c,l+4,(t+b)/2-1,r-4,(t+b)/2+1,0,0xff090607);
-        write(c,value,(l+r)/2,b-17,74,r-l-8,0xfff9e4c7,true);
+        write(c,value,(l+r)/2,b-19,84,r-l-8,0xfff9e4c7,true);
     }
     private void drawLiveCalendar(Canvas canvas,Date now) {
         String month=new SimpleDateFormat("MMMM",Locale.ENGLISH).format(now).toUpperCase(Locale.ENGLISH);
@@ -175,10 +175,10 @@ final class VintageClockView extends View {
         String week=new SimpleDateFormat("EEEE",Locale.ENGLISH).format(now).toUpperCase(Locale.ENGLISH);
 
         // Draw inside the illustrated tear-off notepad without obscuring its rings.
-        gradient(canvas,542,643,664,754,3,0xffffe0aa,0xffe0bd8a);
-        gradient(canvas,542,643,664,671,2,0xffbd6e38,0xff90411f);
-        write(canvas,month,603,663,18,111,0xffffffff,true);
-        write(canvas,day,603,734,77,105,0xff693719,true);
-        write(canvas,week,603,750,15,111,0xff7f4a2c,true);
+        gradient(canvas,517,625,662,784,3,0xffffe0aa,0xffe0bd8a);
+        gradient(canvas,517,625,662,660,2,0xffbd6e38,0xff90411f);
+        write(canvas,month,589,649,18,130,0xffffffff,true);
+        write(canvas,day,589,735,77,124,0xff693719,true);
+        write(canvas,week,589,767,15,130,0xff7f4a2c,true);
     }
 }
