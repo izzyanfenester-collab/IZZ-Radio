@@ -18,6 +18,8 @@ public final class MainActivity extends AppCompatActivity {
     private LinearLayout dashboard,clock;
     private FrameLayout clockStage;
     private ClockExtras clockExtras;
+    private VintageClockView vintageScreen;
+    private String screensaverStyle=ScreensaverStyle.DIGITAL;
     private ImageView selectionWallpaper;
     private View selectionShade;
     private TextView message,hours,seconds,ampm,date,stationLabel,nowPlayingLabel;
@@ -80,6 +82,30 @@ public final class MainActivity extends AppCompatActivity {
         autoWake.setOnCheckedChangeListener((button,checked)->prefs.edit().putBoolean("auto_launch_wake",checked).apply());
         panel.addView(autoWake,new LinearLayout.LayoutParams(-1,dp(52)));
 
+        TextView saverHeading=text("Screensaver appearance",16,0xff202020);
+        saverHeading.setTypeface(null,Typeface.BOLD);
+        saverHeading.setPadding(0,dp(14),0,dp(5));
+        panel.addView(saverHeading);
+
+        RadioGroup saverGroup=new RadioGroup(this);
+        saverGroup.setOrientation(RadioGroup.VERTICAL);
+        RadioButton originalScreen=new RadioButton(this);
+        originalScreen.setId(View.generateViewId());
+        originalScreen.setText("Digital Clock (Original)");
+        originalScreen.setTextSize(16);
+        saverGroup.addView(originalScreen,new RadioGroup.LayoutParams(-1,dp(46)));
+        RadioButton vintageOption=new RadioButton(this);
+        vintageOption.setId(View.generateViewId());
+        vintageOption.setText("Vintage Radio");
+        vintageOption.setTextSize(16);
+        saverGroup.addView(vintageOption,new RadioGroup.LayoutParams(-1,dp(46)));
+        if(ScreensaverStyle.VINTAGE.equals(screensaverStyle)) vintageOption.setChecked(true);
+        else originalScreen.setChecked(true);
+        saverGroup.setOnCheckedChangeListener((g,checkedId)->
+                applyScreensaverStyle(checkedId==vintageOption.getId()
+                        ?ScreensaverStyle.VINTAGE:ScreensaverStyle.DIGITAL));
+        panel.addView(saverGroup);
+
         TextView colorTitle=text("Digital clock colour",16,0xff202020); colorTitle.setTypeface(null,Typeface.BOLD); colorTitle.setPadding(0,dp(12),0,dp(4)); panel.addView(colorTitle);
 
         final String[] names={"Hijau","Biru","Amber / Oren","Putih","Merah"};
@@ -126,6 +152,8 @@ public final class MainActivity extends AppCompatActivity {
 
         dashboard=new LinearLayout(this); dashboard.setOrientation(LinearLayout.VERTICAL); dashboard.setPadding(dp(24),dp(12),dp(24),dp(12)); dashboard.setBackgroundColor(0x00000000); content.addView(dashboard,new FrameLayout.LayoutParams(-1,-1));
         clockColor=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getInt("clock_color",0xff39e639);
+        screensaverStyle=ScreensaverStyle.normalize(getSharedPreferences("izz_radio_prefs",MODE_PRIVATE)
+                .getString("screensaver_style",ScreensaverStyle.DIGITAL));
 
         LinearLayout titleRow=new LinearLayout(this); titleRow.setGravity(Gravity.CENTER_VERTICAL); dashboard.addView(titleRow,new LinearLayout.LayoutParams(-1,dp(48)));
         TextView title=text("IZZ Radio — Malaysia & Singapore",22,0xfff4f0e8); title.setTypeface(null,Typeface.BOLD); titleRow.addView(title,new LinearLayout.LayoutParams(0,-1,1));
@@ -190,16 +218,33 @@ public final class MainActivity extends AppCompatActivity {
         clockExtras=new ClockExtras(this,clockStage);
         clockExtras.setClockColour(clockColor);
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
+
+        vintageScreen=new VintageClockView(this);
+        vintageScreen.setContentDescription("Vintage screensaver. Tap to choose a station; long press to stop radio.");
+        vintageScreen.setVisibility(View.GONE);
+        vintageScreen.setOnClickListener(v->showClock(false));
+        vintageScreen.setOnLongClickListener(v->{if(service!=null) service.stopPlayback();showClock(false);return true;});
+        clockStage.addView(vintageScreen,new FrameLayout.LayoutParams(-1,-1));
         updateClock();
     }
     private void refresh() {
         if(service==null) return;
         message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
+        if(vintageScreen!=null) vintageScreen.setRadioInfo(current==null?"":current.name,
+                current==null?"":service.nowPlaying());
         boolean playing=service.radioPlaying(); if(playing && !wasPlaying) showClock(true); wasPlaying=playing;
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
         if(current==null && !service.doaPlaying()) showClock(false);
     }
-    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
-    private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
+    private void applyScreensaverStyle(String style) {
+        screensaverStyle=ScreensaverStyle.normalize(style);
+        getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).edit()
+                .putString("screensaver_style",screensaverStyle).apply();
+        if(vintageScreen!=null) vintageScreen.setVisibility(
+                clockMode && ScreensaverStyle.VINTAGE.equals(screensaverStyle)?View.VISIBLE:View.GONE);
+        if(vintageScreen!=null) vintageScreen.invalidate();
+    }
+    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); if(vintageScreen!=null) vintageScreen.setVisibility(value && ScreensaverStyle.VINTAGE.equals(screensaverStyle)?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?(ScreensaverStyle.VINTAGE.equals(screensaverStyle)?0.30f:0.10f):WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); if(vintageScreen!=null && vintageScreen.getVisibility()==View.VISIBLE) vintageScreen.tick(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
