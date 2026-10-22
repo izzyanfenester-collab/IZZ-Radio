@@ -133,103 +133,89 @@ final class VintageClockView extends View {
     }
 
     private void drawStation(Canvas c) {
-        // Custom metal and inlaid dark-glass surrounds, aligned inside
-        // the radio's original gold bezel (500..987, 276..538).
-        rect(c,519,294,972,524,15,0xff1b0a04);
-        grad(c,521,295,970,523,13,0xffae7440,0xff5a3117);
-        edge(c,522,296,970,523,13,0xfff4c17c,2.0f);
-        grad(c,530,305,962,513,9,0xff1c0904,0xff3e1a0d);
-        edge(c,531,306,962,512,8,0xff694021,2.0f);
-        // Restrained inset glass reflection, no opaque card sticking out.
-        rect(c,537,310,955,322,4,0x203ba0a0);
-        copperRivet(c,528,305,3);
-        copperRivet(c,964,305,3);
-        copperRivet(c,528,510,3);
-        copperRivet(c,964,510,3);
+        // All coatings sit INSIDE the illustration's brass frame. The original
+        // metal rim stays visible, so it looks like one manufactured radio.
+        grad(c,524,299,970,519,12,0xff8e572f,0xff382012);
+        edge(c,525,300,969,518,11,0xffd7a263,2.2f);
+        grad(c,530,306,964,513,9,0xff150805,0xff37170d);
+        edge(c,533,309,961,511,8,0xff5d3720,2f);
+        line(c,539,316,955,316,0x55ffd49d,1.2f);
+        // Gloss is confined to the inner glass, not an extra opaque card.
+        grad(c,541,317,951,337,4,0x263f554b,0x00170a07);
         String title=station.isEmpty()?"IZZ RADIO":station.toUpperCase(Locale.ROOT);
-        text(c,title,746,411,57,385,IVORY,true,true);
-        line(c,570,438,924,438,0xff98633b,2);
-        // Small electro-acoustic mark, subtly centred in the divider.
-        int[] bars={6,16,25,13,8};
+        text(c,title,747,414,58,379,IVORY,true,true);
+        line(c,567,438,927,438,0xff95643f,1.5f);
+        int[] bars={8,16,23,12,7};
         for(int i=0;i<bars.length;i++) {
             rect(c,732+i*9,438-bars[i]/2f,736+i*9,438+bars[i]/2f,1,0xffc18a50);
         }
         String track=song.isEmpty()?"Live Radio":song;
-        if(track.startsWith("♪")) track=track.substring(1).trim();
-        if(track.startsWith("♫")) track=track.substring(1).trim();
-        if(track.isEmpty()) track="Live Radio";
-        text(c,"♫  "+track,746,483,24,381,0xffe8c8a5,false,false);
+        if(track.startsWith("♪")||track.startsWith("♫")) track=track.substring(1).trim();
+        if(track.isEmpty())track="Live Radio";
+        text(c,"♫  "+track,746,480,24,377,0xffefd3b0,false,false);
     }
 
     private void flipLeaf(Canvas c,float left,float top,float right,float bottom,String value) {
-        rect(c,left+1,top+3,right+3,bottom+4,9,0xff090505); // shallow drop shadow
-        grad(c,left,top,right,bottom,9,0xff4c3330,0xff160e10);
-        edge(c,left,top,right,bottom,9,0xffac7654,1.6f);
-        float split=(top+bottom)/2f;
-        grad(c,left+4,top+3,right-4,split-1,6,0xff332426,0xff211618);
-        grad(c,left+4,split+1,right-4,bottom-3,6,0xff201718,0xff312125);
-        line(c,left+5,split,right-5,split,0xff050304,2.8f);
-        line(c,left+6,split-3,right-6,split-3,0x668d6e5c,1f);
-        // Keep both halves reading like a real printed flip card.
-        text(c,value,(left+right)/2f,split+27f,76,right-left-9,0xffffebd1,true,false);
-        // Hinges on both sides of each flip leaf.
+        // Top and bottom are ONE mechanical leaf with a fine centre fold;
+        // letter forms stay printed on the card rather than floating.
+        grad(c,left,top,right,bottom,9,0xff4a3730,0xff140d0d);
+        edge(c,left,top,right,bottom,9,0xffb38961,1.6f);
+        float mid=(top+bottom)/2f;
+        grad(c,left+3,top+3,right-3,mid-1,5,0xff372827,0xff241719);
+        grad(c,left+3,mid+1,right-3,bottom-3,5,0xff1b1214,0xff322329);
+        line(c,left+4,mid,right-4,mid,0xff0b0506,2f);
+        line(c,left+7,mid-3,right-7,mid-3,0x4db99879,.8f);
+        text(c,value,(left+right)/2f,mid+27,79,right-left-12,0xffffe8c9,true,false);
         for(float x:new float[]{left+3,right-3}) {
-            rect(c,x-3,split-10,x+3,split+10,2,0xff0c0706);
-            rect(c,x-1,split-7,x+1,split+7,1,0xff91715c);
+            rect(c,x-3,mid-10,x+3,mid+10,2,0xff100b0b);
+            grad(c,x-1,mid-7,x+1,mid+7,1,0xffbf9671,0xff50362d);
         }
     }
     private void drawClock(Canvas c,Date now) {
-        // Do not cover the wood and gold clock housing with an artificial large card.
-        // Only refresh the two leaves inside the existing opening.
-        final float x1=732f,x2=851f,top=615f,bottom=729f;
-        String hour=new SimpleDateFormat("HH",Locale.US).format(now);
+        // Separate clock opening is part of the wallpaper's wooden chassis.
+        // Only the small INNER display is repainted.
+        grad(c,724,607,974,747,11,0xff140d0c,0xff32221d);
+        edge(c,725,608,973,746,10,0xff996a46,1.4f);
+        grad(c,731,616,966,735,8,0xff090606,0xff20110e);
+        boolean use24Hour=android.text.format.DateFormat.is24HourFormat(getContext());
+        String hour=new SimpleDateFormat(use24Hour?"HH":"hh",Locale.US).format(now);
         String minute=new SimpleDateFormat("mm",Locale.US).format(now);
-        flipLeaf(c,x1,top,835,bottom,hour);
-        flipLeaf(c,x2,top,953,bottom,minute);
-        // Mechanical centre pin and short separator, both within the frame.
-        rect(c,837,646,848,703,3,0xff0e0908);
-        copperRivet(c,842,673,5.0f);
-        // Small in-frame indicator; use the DEVICE local timezone.
-        String tz=new SimpleDateFormat("z",Locale.US).format(now);
-        text(c,tz,842,750,13,112,0xffc6a58b,false,false);
+        flipLeaf(c,735,620,839,729,hour);
+        flipLeaf(c,856,620,961,729,minute);
+        rect(c,839,651,856,697,3,0xff080505);
+        copperRivet(c,847,674,5);
+        if(!use24Hour) {
+            text(c,new SimpleDateFormat("a",Locale.US).format(now),848,745,13,90,0xffe9bf8f,false,false);
+        }
     }
 
     private void drawCalendar(Canvas c,Date now) {
-        // Cover just the printed paper, keeping the illustration's real
-        // wooden frame, metallic rings and drop shadow visible around it.
-        rect(c,513,635,663,770,5,0xff24100b);
-        grad(c,516,634,659,763,3,0xffffe1b4,0xffe9c593);
-        edge(c,516,634,659,763,3,0xffa0633d,1.8f);
-        grad(c,516,635,659,662,3,0xffab6138,0xff853c22);
-        line(c,517,664,658,664,0xffb2764e,1.3f);
-        // Fine grain lines on the paper make this read as printed stationery.
-        for(int i=0;i<12;i++){
-            float y=670+i*6f;
-            line(c,520,y,655,y,0x10a66b43,.65f);
+        // Traditional paper page. Leave the metal hooks, wood and cast shadow
+        // in the original artwork visible instead of painting over them.
+        rect(c,513,636,661,769,5,0x9a190b07);
+        grad(c,516,635,658,765,3,0xffffe8bb,0xffd6ab7f);
+        edge(c,517,636,658,765,3,0xffa16b45,1.3f);
+        grad(c,517,637,657,668,2,0xffb97345,0xff844224);
+        line(c,519,669,655,669,0xffd9a26f,1.2f);
+        for(int i=0;i<9;i++) {
+            line(c,524,674+7*i,652,674+7*i,0x13a46835,.65f);
         }
         String month=new SimpleDateFormat("MMMM",Locale.ENGLISH).format(now).toUpperCase(Locale.ENGLISH);
         String day=new SimpleDateFormat("dd",Locale.US).format(now);
-        String week=new SimpleDateFormat("EEEE",Locale.ENGLISH).format(now).toUpperCase(Locale.ENGLISH);
-        text(c,month,588,654,18,134,0xffffeee0,true,false);
-        text(c,day,588,739,83,126,INK,true,true);
-        line(c,531,743,646,743,0x448e5d3c,1);
-        text(c,week,588,756,13.5f,125,0xff8a5634,true,false);
-        // Raised brass loops, after the page has been drawn.
-        for(float cx:new float[]{540,585,637}){
-            copperRivet(c,cx,618,6);
-            rect(c,cx-4,592,cx+4,623,4,0xff3a1b10);
-            grad(c,cx-3,593,cx+3,618,3,0xffffe6b4,0xff97704b);
-            edge(c,cx-4,592,cx+4,623,4,0xff59351d,.9f);
-        }
-        // Small folded-paper corner at bottom right.
+        String weekday=new SimpleDateFormat("EEEE",Locale.ENGLISH).format(now).toUpperCase(Locale.ENGLISH);
+        text(c,month,588,658,20,129,0xffffecda,true,false);
+        text(c,day,588,742,84,124,0xff67341b,true,true);
+        line(c,529,748,645,748,0x698c5339,1);
+        text(c,weekday,588,762,14,126,0xff87492a,true,false);
+        // Small folded page edge is part of the paper, not a floating square.
         reset();
         Path fold=new Path();
-        fold.moveTo(643,747);
-        fold.lineTo(657,747);
-        fold.lineTo(657,760);
+        fold.moveTo(640,749);
+        fold.lineTo(656,749);
+        fold.lineTo(656,763);
         fold.close();
-        p.setColor(0xffd0aa7e);
+        p.setColor(0xffb7885e);
         c.drawPath(fold,p);
-        line(c,643,747,657,760,0xffb18a60,1);
+        line(c,640,749,656,763,0xff785032,1f);
     }
 }
