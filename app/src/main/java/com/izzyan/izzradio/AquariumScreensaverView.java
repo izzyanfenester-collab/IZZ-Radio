@@ -124,7 +124,11 @@ final class AquariumScreensaverView extends View {
             canvas.drawArc(x,84,x+25,139,192,38,false,paint);
         }
         canvas.restore();
-        if(active)postInvalidateDelayed(16L); // best-effort ~60fps, device-controlled
+        if(active && getWindowVisibility()==VISIBLE)postInvalidateDelayed(16L); // best-effort up to ~60fps
+    }
+    @Override protected void onWindowVisibilityChanged(int visibility) {
+        super.onWindowVisibilityChanged(visibility);
+        if(visibility==VISIBLE && active) postInvalidateOnAnimation();
     }
     @Override protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
