@@ -167,7 +167,7 @@ public final class MainActivity extends AppCompatActivity {
             grid.addOnLayoutChangeListener((v,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
                 int width=grid.getWidth();
                 if(width<=0) return;
-                int side=Math.max(dp(76),(width-dp(24))/3);
+                int side=Math.max(1,(width-dp(24))/3);
                 for(int i=0;i<grid.getChildCount();i++) {
                     View tile=grid.getChildAt(i);
                     GridLayout.LayoutParams lp=(GridLayout.LayoutParams)tile.getLayoutParams();
