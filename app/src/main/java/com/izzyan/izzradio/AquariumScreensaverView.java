@@ -21,15 +21,14 @@ import java.io.InputStream;
  * Nine fish move independently; the remaining reef inhabitants remain in the background.
  */
 final class AquariumScreensaverView extends View {
-    private static final int W=384,H=216,ATLAS_Y=221;
+    private static final int W=256,H=144,ATLAS_Y=148;
     private static final long LOOP_MS=60000L;
     private static final int[][] FISH={
         // sprite crop x,y,w,h ; original x,y in the 384x216 illustration
-        {1,221,30,29,0,17}, {34,221,36,25,56,21},
-        {73,221,46,37,158,6}, {122,221,38,26,262,11},
-        {163,221,33,34,327,10}, {199,221,47,31,210,34},
-        {249,221,44,27,291,61}, {296,221,37,24,216,74},
-        {336,221,40,22,160,77}
+        {1,148,20,19,0,12}, {24,148,25,17,37,14},
+        {52,148,30,24,106,4}, {85,148,25,18,175,7},
+        {113,148,22,22,218,7}, {138,148,31,20,140,23},
+        {172,148,29,19,194,40}, {204,148,24,16,144,49}
     };
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Rect from=new Rect();
@@ -92,8 +91,8 @@ final class AquariumScreensaverView extends View {
         for(int i=0;i<FISH.length;i++){
             int[] b=FISH[i];
             double phase=t*(i%3+1) + i*.137;
-            float dx=12f*wave(phase)*((i%2==0)?1f:-1f);
-            float dy=5.5f*wave(t*(i%4+1)+i*.19);
+            float dx=7f*wave(phase)*((i%2==0)?1f:-1f);
+            float dy=3.2f*wave(t*(i%4+1)+i*.19);
             float cx=b[4]+b[2]*.5f+dx,cy=b[5]+b[3]*.5f+dy;
             canvas.save();
             canvas.rotate(2.5f*wave(t*(i%5+1)+i*.21),cx,cy);
@@ -109,10 +108,10 @@ final class AquariumScreensaverView extends View {
 
         // The original central bubble column remains; these add actual upward motion.
         for(int i=0;i<92;i++){
-            float x=145f+((i*23)%25)+4f*wave(t*2+i*.137);
-            float period=216f;
+            float x=96f+((i*23)%20)+3f*wave(t*2+i*.137);
+            float period=144f;
             float advance=(float)(t*period*((i%3)+1));
-            float y=215f-((i*19f+advance)%period);
+            float y=143f-((i*19f+advance)%period);
             float radius=.3f+(i%4)*.18f;
             drawBubble(canvas,x,y,radius,28+(i%5)*15);
         }
@@ -121,8 +120,8 @@ final class AquariumScreensaverView extends View {
         paint.setStrokeWidth(.5f);
         paint.setColor(0x1647d3ff);
         for(int i=0;i<8;i++){
-            float x=15+i*49+5*wave(t+i*.1);
-            canvas.drawArc(x,125,x+34,208,192,38,false,paint);
+            float x=10+i*32+3*wave(t+i*.1);
+            canvas.drawArc(x,84,x+25,139,192,38,false,paint);
         }
         canvas.restore();
         if(active)postInvalidateDelayed(16L); // best-effort ~60fps, device-controlled
