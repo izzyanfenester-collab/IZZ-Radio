@@ -18,6 +18,8 @@ public final class MainActivity extends AppCompatActivity {
     private LinearLayout dashboard,clock;
     private FrameLayout clockStage;
     private ClockExtras clockExtras;
+    private AquariumScreensaverView aquariumScreen;
+    private String screensaverStyle="digital";
     private ImageView selectionWallpaper;
     private View selectionShade;
     private TextView message,hours,seconds,ampm,date,stationLabel,nowPlayingLabel;
@@ -81,6 +83,29 @@ public final class MainActivity extends AppCompatActivity {
         autoWake.setOnCheckedChangeListener((button,checked)->prefs.edit().putBoolean("auto_launch_wake",checked).apply());
         panel.addView(autoWake,new LinearLayout.LayoutParams(-1,dp(52)));
 
+        TextView saverTitle=text("Screensaver",16,0xff202020);
+        saverTitle.setTypeface(null,Typeface.BOLD);
+        saverTitle.setPadding(0,dp(10),0,dp(4));
+        panel.addView(saverTitle);
+
+        RadioGroup screensavers=new RadioGroup(this);
+        screensavers.setOrientation(RadioGroup.VERTICAL);
+        RadioButton digitalOption=new RadioButton(this);
+        digitalOption.setId(View.generateViewId());
+        digitalOption.setText("Digital Clock (Original)");
+        digitalOption.setTextSize(16);
+        screensavers.addView(digitalOption,new RadioGroup.LayoutParams(-1,dp(45)));
+        RadioButton aquariumOption=new RadioButton(this);
+        aquariumOption.setId(View.generateViewId());
+        aquariumOption.setText("Animated Aquarium");
+        aquariumOption.setTextSize(16);
+        screensavers.addView(aquariumOption,new RadioGroup.LayoutParams(-1,dp(45)));
+        if("aquarium".equals(screensaverStyle)) aquariumOption.setChecked(true);
+        else digitalOption.setChecked(true);
+        screensavers.setOnCheckedChangeListener((group,id)->
+                setScreensaverStyle(id==aquariumOption.getId()?"aquarium":"digital"));
+        panel.addView(screensavers);
+
         TextView colorTitle=text("Digital clock colour",16,0xff202020); colorTitle.setTypeface(null,Typeface.BOLD); colorTitle.setPadding(0,dp(12),0,dp(4)); panel.addView(colorTitle);
 
         final String[] names={"Hijau","Biru","Amber / Oren","Putih","Merah"};
@@ -127,6 +152,8 @@ public final class MainActivity extends AppCompatActivity {
 
         dashboard=new LinearLayout(this); dashboard.setOrientation(LinearLayout.VERTICAL); dashboard.setPadding(dp(24),dp(12),dp(24),dp(12)); dashboard.setBackgroundColor(0x00000000); content.addView(dashboard,new FrameLayout.LayoutParams(-1,-1));
         clockColor=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getInt("clock_color",0xff39e639);
+        screensaverStyle=ScreensaverPreference.normalize(getSharedPreferences("izz_radio_prefs",MODE_PRIVATE)
+                .getString("screensaver_style",ScreensaverPreference.DIGITAL));
 
         LinearLayout titleRow=new LinearLayout(this); titleRow.setGravity(Gravity.CENTER_VERTICAL); dashboard.addView(titleRow,new LinearLayout.LayoutParams(-1,dp(48)));
         TextView title=text("IZZ Radio — Malaysia & Singapore",22,0xfff4f0e8); title.setTypeface(null,Typeface.BOLD); titleRow.addView(title,new LinearLayout.LayoutParams(0,-1,1));
@@ -259,6 +286,12 @@ public final class MainActivity extends AppCompatActivity {
         clockExtras=new ClockExtras(this,clockStage);
         clockExtras.setClockColour(clockColor);
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
+        aquariumScreen=new AquariumScreensaverView(this);
+        aquariumScreen.setVisibility(View.GONE);
+        aquariumScreen.setContentDescription("Animated tropical aquarium. Tap to return to radio stations.");
+        aquariumScreen.setOnClickListener(v->showClock(false));
+        aquariumScreen.setOnLongClickListener(v->{if(service!=null)service.stopPlayback();showClock(false);return true;});
+        clockStage.addView(aquariumScreen,new FrameLayout.LayoutParams(-1,-1));
         updateClock();
     }
     private void refresh() {
@@ -268,7 +301,22 @@ public final class MainActivity extends AppCompatActivity {
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
         if(current==null && !service.doaPlaying() && !manualClockRequest) showClock(false);
     }
-    private void showClock(boolean value) { if(!value) manualClockRequest=false; clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void setScreensaverStyle(String style) {
+        screensaverStyle=ScreensaverPreference.normalize(style);
+        getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).edit()
+                .putString("screensaver_style",screensaverStyle).apply();
+        if(aquariumScreen!=null) {
+            boolean aquarium=clockMode && "aquarium".equals(screensaverStyle);
+            aquariumScreen.setVisibility(aquarium?View.VISIBLE:View.GONE);
+            aquariumScreen.setActive(aquarium);
+        }
+    }
+    private void showClock(boolean value) { if(!value) manualClockRequest=false; clockMode=value;
+        if(aquariumScreen!=null) {
+            boolean aquarium=value && "aquarium".equals(screensaverStyle);
+            aquariumScreen.setVisibility(aquarium?View.VISIBLE:View.GONE);
+            aquariumScreen.setActive(aquarium);
+        } selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
     private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
