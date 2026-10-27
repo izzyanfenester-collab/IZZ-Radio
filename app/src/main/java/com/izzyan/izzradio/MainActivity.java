@@ -14,7 +14,7 @@ import java.util.*;
 
 public final class MainActivity extends AppCompatActivity {
     private PlaybackService service;
-    private boolean bound,clockMode,wasPlaying;
+    private boolean bound,clockMode,wasPlaying,manualClockRequest;
     private LinearLayout dashboard,clock;
     private FrameLayout clockStage;
     private ClockExtras clockExtras;
@@ -43,12 +43,13 @@ public final class MainActivity extends AppCompatActivity {
             }
             ContextCompat.startForegroundService(this,serviceIntent);
         }
+        manualClockRequest=saved!=null && saved.getBoolean("manualClock",false);
         clockMode=saved!=null && saved.getBoolean("clock"); showClock(clockMode);
         if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},4);
     }
     @Override protected void onStart() { super.onStart(); bound=bindService(new Intent(this,PlaybackService.class),connection,BIND_AUTO_CREATE); handler.post(tick); }
     @Override protected void onStop() { handler.removeCallbacks(tick); if(service!=null) service.removeObserver(observer); if(bound) { unbindService(connection); bound=false; } service=null; super.onStop(); }
-    @Override protected void onSaveInstanceState(Bundle state) { state.putBoolean("clock",clockMode); super.onSaveInstanceState(state); }
+    @Override protected void onSaveInstanceState(Bundle state) { state.putBoolean("clock",clockMode); state.putBoolean("manualClock",manualClockRequest); super.onSaveInstanceState(state); }
     private int dp(float value) { return Math.round(value*getResources().getDisplayMetrics().density); }
     private TextView text(String value,float size,int color) { TextView v=new TextView(this); v.setText(value); v.setTextColor(color); v.setTextSize(size); v.setGravity(Gravity.CENTER_VERTICAL); return v; }
     private GradientDrawable surface(int color,int border) { GradientDrawable d=new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(12)); if(border!=0) d.setStroke(dp(1),border); return d; }
@@ -130,6 +131,16 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout titleRow=new LinearLayout(this); titleRow.setGravity(Gravity.CENTER_VERTICAL); dashboard.addView(titleRow,new LinearLayout.LayoutParams(-1,dp(48)));
         TextView title=text("IZZ Radio — Malaysia & Singapore",22,0xfff4f0e8); title.setTypeface(null,Typeface.BOLD); titleRow.addView(title,new LinearLayout.LayoutParams(0,-1,1));
 
+        TextView saver=text("Screen saver",16,0xffffffff);
+        saver.setTypeface(null,Typeface.BOLD);
+        saver.setGravity(Gravity.CENTER);
+        saver.setBackground(surface(0xff11668c,0xff2d88a9));
+        saver.setContentDescription("Open Digital Clock screensaver");
+        LinearLayout.LayoutParams saverLp=new LinearLayout.LayoutParams(dp(132),dp(40));
+        saverLp.setMargins(dp(4),dp(4),dp(5),dp(4));
+        titleRow.addView(saver,saverLp);
+        saver.setOnClickListener(v->{ manualClockRequest=true; showClock(true); });
+
         TextView stop=text("■  STOP",14,0xffffffff); stop.setTypeface(null,Typeface.BOLD); stop.setGravity(Gravity.CENTER); stop.setBackground(surface(0xdd8b2525,0xffd05a5a));
         LinearLayout.LayoutParams stopLp=new LinearLayout.LayoutParams(dp(104),dp(40)); stopLp.setMargins(dp(8),dp(4),dp(8),dp(4)); titleRow.addView(stop,stopLp);
         stop.setOnClickListener(v->{ if(service!=null) service.stopPlayback(); showClock(false); });
@@ -145,11 +156,47 @@ public final class MainActivity extends AppCompatActivity {
             LinearLayout pane=new LinearLayout(this); pane.setOrientation(LinearLayout.VERTICAL);
             LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(0,-1,1); pp.setMargins(country.equals("Singapore")?dp(8):0,0,country.equals("Malaysia")?dp(8):0,0); panes.addView(pane,pp);
             TextView heading=text(country.toUpperCase(Locale.ROOT),14,0xffffd6a0); heading.setTypeface(null,Typeface.BOLD); pane.addView(heading,new LinearLayout.LayoutParams(-1,dp(30)));
-            ScrollView scroll=new ScrollView(this); pane.addView(scroll,new LinearLayout.LayoutParams(-1,0,1)); LinearLayout list=new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL); scroll.addView(list);
+            ScrollView scroll=new ScrollView(this);
+            scroll.setFillViewport(true);
+            pane.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+            GridLayout grid=new GridLayout(this);
+            grid.setColumnCount(3);
+            grid.setOrientation(GridLayout.HORIZONTAL);
+            scroll.addView(grid,new ScrollView.LayoutParams(-1,-2));
+            // Keep all three columns square as the car head-unit width changes.
+            grid.addOnLayoutChangeListener((v,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
+                int width=grid.getWidth();
+                if(width<=0) return;
+                int side=Math.max(dp(76),(width-dp(24))/3);
+                for(int i=0;i<grid.getChildCount();i++) {
+                    View tile=grid.getChildAt(i);
+                    GridLayout.LayoutParams lp=(GridLayout.LayoutParams)tile.getLayoutParams();
+                    if(lp.width!=side || lp.height!=side) {
+                        lp.width=side;
+                        lp.height=side;
+                        tile.setLayoutParams(lp);
+                    }
+                }
+            });
             for(Station s:catalog) if(s.country.equals(country)) {
-                LinearLayout row=new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(12),dp(8),dp(12),dp(8)); row.setBackground(surface(0xcc101a28,0xaa526171));
-                LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,dp(74)); rp.bottomMargin=dp(10); list.addView(row,rp); cards.put(s.id,row);
-                ImageView logo=new ImageView(this); logo.setScaleType(ImageView.ScaleType.FIT_CENTER); logo.setContentDescription(s.name+" artwork"); row.addView(logo,new LinearLayout.LayoutParams(dp(54),dp(54)));
+                LinearLayout tile=new LinearLayout(this);
+                tile.setOrientation(LinearLayout.VERTICAL);
+                tile.setGravity(Gravity.CENTER_HORIZONTAL);
+                tile.setPadding(dp(6),dp(5),dp(6),dp(5));
+                tile.setBackground(surface(0xdc101a28,0xaa526171));
+                GridLayout.LayoutParams tileLp=new GridLayout.LayoutParams();
+                tileLp.width=dp(90);
+                tileLp.height=dp(90);
+                tileLp.setMargins(dp(4),dp(4),dp(4),dp(4));
+                grid.addView(tile,tileLp);
+                cards.put(s.id,tile);
+
+                ImageView logo=new ImageView(this);
+                logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                logo.setContentDescription(s.name+" artwork");
+                LinearLayout.LayoutParams imageLp=new LinearLayout.LayoutParams(-1,0,1);
+                imageLp.setMargins(dp(9),0,dp(9),0);
+                tile.addView(logo,imageLp);
                 if(s.localLogo.equals("logo_suria")) logo.setImageResource(R.drawable.logo_suria);
                 else {
                     String artwork=s.logo;
@@ -164,10 +211,32 @@ public final class MainActivity extends AppCompatActivity {
                             .dontAnimate()
                             .into(logo);
                 }
-                LinearLayout labels=new LinearLayout(this); labels.setOrientation(LinearLayout.VERTICAL); labels.setPadding(dp(10),0,dp(4),0); row.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
-                TextView name=text(s.name,18,0xfff1f4f8); name.setTypeface(null,Typeface.BOLD); name.setMaxLines(1); name.setEllipsize(android.text.TextUtils.TruncateAt.END); labels.addView(name); labels.addView(text(country,12,0xffb5c0cf));
-                TextView play=text("▶",26,0xffdce6f2); play.setGravity(Gravity.CENTER); row.addView(play,new LinearLayout.LayoutParams(dp(42),-1)); row.setContentDescription("Play "+s.name+", "+country); row.setFocusable(true);
-                row.setOnClickListener(v->{ if(service==null) { Toast.makeText(this,"Preparing playback…",Toast.LENGTH_SHORT).show(); return; } boolean queued=service.doaPlaying(); ContextCompat.startForegroundService(this,new Intent(this,PlaybackService.class).setAction(PlaybackService.SELECT).putExtra("station",s.id)); if(queued) Toast.makeText(this,s.name+" will start after the doa",Toast.LENGTH_SHORT).show(); });
+
+                TextView name=text(s.name,15,0xfff1f4f8);
+                name.setTypeface(null,Typeface.BOLD);
+                name.setGravity(Gravity.CENTER);
+                name.setMaxLines(1);
+                name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                tile.addView(name,new LinearLayout.LayoutParams(-1,dp(24)));
+                TextView location=text(country,11,0xffb5c0cf);
+                location.setGravity(Gravity.CENTER);
+                tile.addView(location,new LinearLayout.LayoutParams(-1,dp(16)));
+                TextView play=text("▶",16,0xffdce6f2);
+                play.setGravity(Gravity.CENTER);
+                tile.addView(play,new LinearLayout.LayoutParams(-1,dp(22)));
+
+                tile.setContentDescription("Play "+s.name+", "+country);
+                tile.setFocusable(true);
+                tile.setOnClickListener(v->{
+                    if(service==null) {
+                        Toast.makeText(this,"Preparing playback…",Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    boolean queued=service.doaPlaying();
+                    ContextCompat.startForegroundService(this,new Intent(this,PlaybackService.class)
+                            .setAction(PlaybackService.SELECT).putExtra("station",s.id));
+                    if(queued) Toast.makeText(this,s.name+" will start after the doa",Toast.LENGTH_SHORT).show();
+                });
             }
         }
         clockStage=new FrameLayout(this); clockStage.setBackgroundColor(0xff000000); content.addView(clockStage,new FrameLayout.LayoutParams(-1,-1));
@@ -197,9 +266,9 @@ public final class MainActivity extends AppCompatActivity {
         message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
         boolean playing=service.radioPlaying(); if(playing && !wasPlaying) showClock(true); wasPlaying=playing;
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
-        if(current==null && !service.doaPlaying()) showClock(false);
+        if(current==null && !service.doaPlaying() && !manualClockRequest) showClock(false);
     }
-    private void showClock(boolean value) { clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void showClock(boolean value) { if(!value) manualClockRequest=false; clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
     private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
