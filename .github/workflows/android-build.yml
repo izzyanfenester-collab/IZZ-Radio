@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [main, codex/izz-radio-final]
+    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136]
   workflow_dispatch:
 permissions:
   contents: read
