@@ -27,7 +27,8 @@ public final class PlaybackService extends Service {
     private Station current;
     private int generation;
     private StreamAttempts attempts=new StreamAttempts();
-    private String status="Preparing doa…";
+    private String status="Preparing Selawat…";
+    private boolean startupAudioFailed;
     private String nowPlaying="";
     private Runnable metadataFallback;
     private boolean stopped;
@@ -63,7 +64,15 @@ public final class PlaybackService extends Service {
         }
     };
     boolean initialized() { return initialized; }
-    void resumeDoa() { if(gate.locked() && initialized) player.play(); }
+    void resumeDoa() {
+        if(!gate.locked() || !initialized) return;
+        if(startupAudioFailed) {
+            startupAudioFailed=false;
+            status="Playing Selawat";
+            prepareStartupAudio();
+            publish();
+        } else player.play();
+    }
     private Runnable retry;
     void observe(Observer o) { observers.add(o); o.changed(); }
     void removeObserver(Observer o) { observers.remove(o); }
@@ -128,18 +137,22 @@ public final class PlaybackService extends Service {
         player.setHandleAudioBecomingNoisy(true); player.setWakeMode(C.WAKE_MODE_NETWORK);
         session=new MediaSession.Builder(this,player).setCallback(new MediaSession.Callback() {
             @Override public MediaSession.ConnectionResult onConnect(MediaSession s, MediaSession.ControllerInfo controller) {
-                // External controls cannot seek/skip the startup doa or replace media.
+                // External controls cannot seek/skip the startup Selawat or replace media.
                 return MediaSession.ConnectionResult.reject();
             }
         }).build();
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int state) {
-                if(state==Player.STATE_ENDED && gate.locked() && !stopped) finishDoa(false);
+                if(state==Player.STATE_ENDED && gate.locked() && !stopped && !startupAudioFailed) finishDoa();
                 else if(state==Player.STATE_ENDED && current!=null && !stopped) failedStream();
             }
             @Override public void onPlayerError(PlaybackException error) {
                 if(stopped) return;
-                if(gate.locked()) finishDoa(true); else failedStream();
+                if(gate.locked()) {
+                    startupAudioFailed=true;
+                    status="Selawat playback failed • tap to retry";
+                    publish();
+                } else failedStream();
             }
             @Override public void onIsPlayingChanged(boolean playing) {
                 if(!gate.locked() && current!=null && playing) {
@@ -178,9 +191,12 @@ public final class PlaybackService extends Service {
         if(STOP.equals(action)) { stopPlayback(); return START_NOT_STICKY; }
         startForeground(17,notification());
         if(LAUNCH.equals(action)) {
-            freshLaunch();
-            String resume=intent.getStringExtra("resume_station");
-            if(resume!=null && !resume.isEmpty()) select(resume);
+            // Returning to the UI while the service is alive must not replay Selawat.
+            if(!initialized) {
+                freshLaunch();
+                String resume=intent.getStringExtra("resume_station");
+                if(resume!=null && !resume.isEmpty()) select(resume);
+            }
         } else if(SELECT.equals(action)) select(intent.getStringExtra("station"));
         return START_NOT_STICKY;
     }
@@ -188,20 +204,27 @@ public final class PlaybackService extends Service {
     private void freshLaunch() {
         initialized=true;
         stopped=true; cancelPending(); cancelMetadataFallback(); player.stop(); player.clearMediaItems(); current=null; nowPlaying="";
-        gate.freshLaunch(); stopped=false; status="Doa Menaiki Kenderaan • select a station to queue";
+        gate.freshLaunch(); stopped=false; startupAudioFailed=false;
+        status="Playing Selawat • select a station to queue";
+        prepareStartupAudio();
+        publish();
+    }
+    private void prepareStartupAudio() {
+        // Legacy resource ID retained so the existing startup pipeline remains unchanged.
+        // The file itself is the supplied Selawat recording, checked by the build.
         player.setMediaItem(MediaItem.fromUri("android.resource://"+getPackageName()+"/"+R.raw.doa_menaiki_kenderaan));
-        player.prepare(); player.play(); publish();
+        player.prepare(); player.play();
     }
     private void select(String id) {
         if(find(id)==null) return;
         String ready=gate.select(id);
-        if(ready==null) { status=find(id).name+" will start after the doa"; publish(); }
+        if(ready==null) { status=startupAudioFailed?"Selawat playback failed • tap to retry":find(id).name+" will start after Selawat"; publish(); }
         else startStation(ready);
     }
     private Station find(String id) { for(Station s:stations) if(s.id.equals(id)) return s; return null; }
-    private void finishDoa(boolean error) {
+    private void finishDoa() {
         String next=gate.doaFinished();
-        status=error?"Doa unavailable; radio playback unlocked":"Doa complete • select a station";
+        status="Selawat complete • select a station";
         if(next!=null) startStation(next); else { publish(); stopForeground(STOP_FOREGROUND_REMOVE); }
     }
     private void startStation(String id) {
@@ -226,14 +249,14 @@ public final class PlaybackService extends Service {
         handler.postDelayed(retry,delay);
     }
     void stopPlayback() {
-        // Stop never unlocks or truncates the doa; discard queued radio instead.
-        if(gate.locked()) { gate.clearQueue(); status="Doa playing • queued station cleared"; publish(); return; }
+        // Stop never unlocks or truncates Selawat; discard queued radio instead.
+        if(gate.locked()) { gate.clearQueue(); status=startupAudioFailed?"Selawat playback failed • tap to retry":"Selawat playing • queued station cleared"; publish(); return; }
         stopped=true; cancelPending(); cancelMetadataFallback(); player.stop(); player.clearMediaItems(); current=null; nowPlaying=""; status="Playback stopped"; publish(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
     }
     private Notification notification() {
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,PlaybackService.class).setAction(STOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        return new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Doa":current.name).setContentText(current!=null && nowPlaying!=null && !nowPlaying.isEmpty()?nowPlaying:status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session)).build();
+        return new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Selawat":current.name).setContentText(current!=null && nowPlaying!=null && !nowPlaying.isEmpty()?nowPlaying:status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session)).build();
     }
     private void publish() { for(Observer o:new ArrayList<>(observers)) o.changed(); if(!stopped) getSystemService(NotificationManager.class).notify(17,notification()); }
     @Override public void onDestroy() {
