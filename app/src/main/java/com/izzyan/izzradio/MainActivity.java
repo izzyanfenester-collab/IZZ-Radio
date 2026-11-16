@@ -149,7 +149,7 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams gearLp=new LinearLayout.LayoutParams(dp(52),dp(40)); gearLp.setMargins(dp(2),dp(4),0,dp(4)); titleRow.addView(gear,gearLp);
         gear.setContentDescription("Settings"); gear.setOnClickListener(v->showSettings());
 
-        message=text("Doa Menaiki Kenderaan • select a station to queue",13,0xffd6dce5); dashboard.addView(message,new LinearLayout.LayoutParams(-1,dp(30))); message.setContentDescription("Playback status. Tap to resume the doa if paused."); message.setOnClickListener(v->{ if(service!=null) service.resumeDoa(); });
+        message=text("Playing Selawat • select a station to queue",13,0xffd6dce5); dashboard.addView(message,new LinearLayout.LayoutParams(-1,dp(30))); message.setContentDescription("Playback status. Tap to resume or retry Selawat."); message.setOnClickListener(v->{ if(service!=null) service.resumeDoa(); });
         LinearLayout panes=new LinearLayout(this); dashboard.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         List<Station> catalog=Station.load(this);
         for(String country:new String[]{"Malaysia","Singapore"}) {
@@ -235,7 +235,7 @@ public final class MainActivity extends AppCompatActivity {
                     boolean queued=service.doaPlaying();
                     ContextCompat.startForegroundService(this,new Intent(this,PlaybackService.class)
                             .setAction(PlaybackService.SELECT).putExtra("station",s.id));
-                    if(queued) Toast.makeText(this,s.name+" will start after the doa",Toast.LENGTH_SHORT).show();
+                    if(queued) Toast.makeText(this,s.name+" will start after Selawat",Toast.LENGTH_SHORT).show();
                 });
             }
         }
