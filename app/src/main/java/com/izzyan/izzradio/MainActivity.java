@@ -197,8 +197,8 @@ public final class MainActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams imageLp=new LinearLayout.LayoutParams(-1,0,1);
                 imageLp.setMargins(dp(9),0,dp(9),0);
                 tile.addView(logo,imageLp);
-                if(s.name.equals("SINAR FM")) setExactStationLogo(logo,"logos/sinar.b64");
-                else if(s.name.equals("HITZ FM")) setExactStationLogo(logo,"logos/hitz.b64");
+                if(s.name.equals("SINAR FM")) setExactStationLogo(logo,"logos/sinar.png");
+                else if(s.name.equals("HITZ FM")) setExactStationLogo(logo,"logos/hitz.webp");
                 else if(s.localLogo.equals("logo_suria")) logo.setImageResource(R.drawable.logo_suria);
                 else {
                     String artwork=s.logo;
@@ -270,7 +270,7 @@ public final class MainActivity extends AppCompatActivity {
             byte[] buffer=new byte[4096];
             int n;
             while((n=stream.read(buffer))!=-1) output.write(buffer,0,n);
-            byte[] bytes=android.util.Base64.decode(output.toByteArray(),android.util.Base64.DEFAULT);
+            byte[] bytes=output.toByteArray();
             android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.length);
             if(bitmap==null) throw new java.io.IOException("Invalid bundled station logo");
             view.setImageBitmap(bitmap);
