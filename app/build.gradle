@@ -3,7 +3,7 @@ android {
     namespace 'com.izzyan.izzradio'
     compileSdk 35
     buildToolsVersion "35.0.0"
-    defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 41; versionName '1.37'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
+    defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 42; versionName '1.38'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     testOptions { unitTests.includeAndroidResources = true }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/stations')
@@ -36,3 +36,22 @@ tasks.register('verifySelawatAudio') {
     }
 }
 tasks.named('preBuild').configure { dependsOn 'verifySelawatAudio' }
+
+
+// Prevent accidental substitution, truncation, or cached remote assets.
+tasks.register('verifyExactStationLogos') {
+    def logos = [
+        'sinar.png': '4f60765646c35aa18a9f342b4f2eb3a70a495340aa121e0f4d2611b775aa817a',
+        'hitz.webp' : '3a28fd7db0dae37160326c9fef5fcaa92a99727b73b2f9c6fb95e6dec1328abb'
+    ]
+    inputs.files(logos.keySet().collect { file("src/main/assets/logos/${it}") })
+    doLast {
+        logos.each { name, expected ->
+            def input = file("src/main/assets/logos/${name}")
+            def decoded = input.bytes
+            def actual = java.security.MessageDigest.getInstance('SHA-256').digest(decoded).encodeHex().toString()
+            if (actual != expected) throw new GradleException("Incorrect bundled station logo: ${name}")
+        }
+    }
+}
+tasks.named('preBuild').configure { dependsOn 'verifyExactStationLogos' }
