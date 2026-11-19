@@ -197,7 +197,9 @@ public final class MainActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams imageLp=new LinearLayout.LayoutParams(-1,0,1);
                 imageLp.setMargins(dp(9),0,dp(9),0);
                 tile.addView(logo,imageLp);
-                if(s.localLogo.equals("logo_suria")) logo.setImageResource(R.drawable.logo_suria);
+                if(s.name.equals("SINAR FM")) setExactStationLogo(logo,"logos/sinar.b64");
+                else if(s.name.equals("HITZ FM")) setExactStationLogo(logo,"logos/hitz.b64");
+                else if(s.localLogo.equals("logo_suria")) logo.setImageResource(R.drawable.logo_suria);
                 else {
                     String artwork=s.logo;
                     if(artwork.isEmpty() && !s.logoPage.isEmpty()) {
@@ -261,6 +263,23 @@ public final class MainActivity extends AppCompatActivity {
         clock.setContentDescription("Night clock. Tap for stations; long press to stop radio."); clock.setOnClickListener(v->showClock(false)); clock.setOnLongClickListener(v->{if(service!=null) service.stopPlayback(); showClock(false); return true;});
         updateClock();
     }
+    /** Exact bundled logos; never request the old network logos or reuse their Glide cache. */
+    private void setExactStationLogo(ImageView view,String assetPath) {
+        try(java.io.InputStream stream=getAssets().open(assetPath);
+            java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream()) {
+            byte[] buffer=new byte[4096];
+            int n;
+            while((n=stream.read(buffer))!=-1) output.write(buffer,0,n);
+            byte[] bytes=android.util.Base64.decode(output.toByteArray(),android.util.Base64.DEFAULT);
+            android.graphics.Bitmap bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+            if(bitmap==null) throw new java.io.IOException("Invalid bundled station logo");
+            view.setImageBitmap(bitmap);
+        }catch(Exception error){
+            android.util.Log.e("IZZRadio","Could not decode "+assetPath,error);
+            view.setImageResource(R.drawable.ic_radio);
+        }
+    }
+
     private void refresh() {
         if(service==null) return;
         message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
