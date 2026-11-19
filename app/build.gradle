@@ -41,14 +41,14 @@ tasks.named('preBuild').configure { dependsOn 'verifySelawatAudio' }
 // Prevent accidental substitution, truncation, or cached remote assets.
 tasks.register('verifyExactStationLogos') {
     def logos = [
-        'sinar.b64': '4f60765646c35aa18a9f342b4f2eb3a70a495340aa121e0f4d2611b775aa817a',
-        'hitz.b64' : '3a28fd7db0dae37160326c9fef5fcaa92a99727b73b2f9c6fb95e6dec1328abb'
+        'sinar.png': '4f60765646c35aa18a9f342b4f2eb3a70a495340aa121e0f4d2611b775aa817a',
+        'hitz.webp' : '3a28fd7db0dae37160326c9fef5fcaa92a99727b73b2f9c6fb95e6dec1328abb'
     ]
     inputs.files(logos.keySet().collect { file("src/main/assets/logos/${it}") })
     doLast {
         logos.each { name, expected ->
             def input = file("src/main/assets/logos/${name}")
-            def decoded = java.util.Base64.getMimeDecoder().decode(input.getText('US-ASCII'))
+            def decoded = input.bytes
             def actual = java.security.MessageDigest.getInstance('SHA-256').digest(decoded).encodeHex().toString()
             if (actual != expected) throw new GradleException("Incorrect bundled station logo: ${name}")
         }
