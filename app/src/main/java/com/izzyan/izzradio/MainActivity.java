@@ -182,7 +182,8 @@ public final class MainActivity extends AppCompatActivity {
                 LinearLayout tile=new LinearLayout(this);
                 tile.setOrientation(LinearLayout.VERTICAL);
                 tile.setGravity(Gravity.CENTER_HORIZONTAL);
-                tile.setPadding(dp(6),dp(5),dp(6),dp(5));
+                // Keep the original outer radio card; reclaim padding for larger frameless artwork.
+                tile.setPadding(dp(3),dp(3),dp(3),dp(3));
                 tile.setBackground(surface(0xdc101a28,0xaa526171));
                 tile.setElevation(dp(2));
                 tile.setForeground(new android.graphics.drawable.RippleDrawable(
@@ -197,12 +198,14 @@ public final class MainActivity extends AppCompatActivity {
                 ImageView logo=new ImageView(this);
                 logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 logo.setContentDescription(s.name+" artwork");
-                // Preserve source logos and their aspect ratios inside a rounded premium frame.
-                logo.setBackground(surface(0x771b293b,0x446f869f));
-                logo.setPadding(dp(4),dp(4),dp(4),dp(4));
-                logo.setClipToOutline(true);
+                // V1.40: absolutely no inner logo frame, stroke, shadow or extra padding.
+                // Source logo dimensions and transparency remain unchanged.
+                logo.setBackground(null);
+                logo.setPadding(0,0,0,0);
+                logo.setClipToOutline(false);
+                logo.setCropToPadding(false);
                 LinearLayout.LayoutParams imageLp=new LinearLayout.LayoutParams(-1,0,1);
-                imageLp.setMargins(dp(5),0,dp(5),0);
+                imageLp.setMargins(dp(2),dp(1),dp(2),dp(1));
                 tile.addView(logo,imageLp);
                 if(s.localLogo.startsWith("logos/")) setExactStationLogo(logo,s.localLogo);
                 else if(s.name.equals("SINAR FM")) setExactStationLogo(logo,"logos/sinar.png");
@@ -227,13 +230,18 @@ public final class MainActivity extends AppCompatActivity {
                 name.setGravity(Gravity.CENTER);
                 name.setMaxLines(1);
                 name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                tile.addView(name,new LinearLayout.LayoutParams(-1,dp(24)));
+                // Give the frameless logo as much vertical card area as possible.
+                tile.addView(name,new LinearLayout.LayoutParams(-1,dp(21)));
+                LinearLayout footer=new LinearLayout(this);
+                footer.setOrientation(LinearLayout.HORIZONTAL);
+                footer.setGravity(Gravity.CENTER_VERTICAL);
+                tile.addView(footer,new LinearLayout.LayoutParams(-1,dp(18)));
                 TextView location=text(country,11,0xffb5c0cf);
                 location.setGravity(Gravity.CENTER);
-                tile.addView(location,new LinearLayout.LayoutParams(-1,dp(16)));
+                footer.addView(location,new LinearLayout.LayoutParams(0,-1,1));
                 TextView play=text("▶",16,0xffdce6f2);
                 play.setGravity(Gravity.CENTER);
-                tile.addView(play,new LinearLayout.LayoutParams(-1,dp(22)));
+                footer.addView(play,new LinearLayout.LayoutParams(dp(25),-1));
 
                 tile.setContentDescription("Play "+s.name+", "+country);
                 tile.setFocusable(true);
