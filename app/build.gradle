@@ -6,7 +6,7 @@ android {
     defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 44; versionName '1.40'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
     // Keep TESTING as a parallel-install app so the Official build and saved data remain untouched.
     buildTypes {
-        debug { applicationIdSuffix '.testing' }
+        debug { applicationIdSuffix '.testingv140' }
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     testOptions { unitTests.includeAndroidResources = true }
