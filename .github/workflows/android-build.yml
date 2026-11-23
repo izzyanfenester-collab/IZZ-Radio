@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136, feature/selawat-v137, feature/sinar-hitz-local-logos-v138, feature/ten-station-local-logos-v139]
+    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136, feature/selawat-v137, feature/sinar-hitz-local-logos-v138, feature/ten-station-local-logos-v139, feature/maximized-frameless-station-logos-v140]
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,10 +29,10 @@ jobs:
           name: IZZ-Radio-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-      - name: Bundle complete v1.39 TESTING source
-        run: git archive --format=zip --output=IZZ-Radio-v1.39-TESTING-source.zip HEAD
+      - name: Bundle complete v1.40 TESTING source
+        run: git archive --format=zip --output=IZZ-Radio-v1.40-TESTING-source.zip HEAD
       - uses: actions/upload-artifact@v4
         with:
-          name: IZZ-Radio-v1.39-TESTING-source
-          path: IZZ-Radio-v1.39-TESTING-source.zip
+          name: IZZ-Radio-v1.40-TESTING-source
+          path: IZZ-Radio-v1.40-TESTING-source.zip
           if-no-files-found: error
