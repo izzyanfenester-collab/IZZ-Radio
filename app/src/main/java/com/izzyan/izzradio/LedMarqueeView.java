@@ -8,16 +8,14 @@ import android.util.AttributeSet;
 import android.view.View;
 
 /**
- * Premium, truly legible 7x9 LED marquee.
- * Never rasterize a TextView/font into sampled pixels: each glyph has explicit
- * on/off LEDs, so letters retain their shape while moving by fractional pixels.
+ * V1.43: True 8x10 LED matrix with an always-moving, seamless right-to-left marquee.
+ * The existing Home banner dimensions and blue housing are never changed.
+ * Character LEDs are fixed cached columns; only their on-screen positions move.
  */
 final class LedMarqueeView extends View {
     private static final int ROWS=LedMatrixFont.HEIGHT;
     private static final int DARK=0xff151515;
     private static final int BACKGROUND=0xff050505;
-    private static final long INTRO_PAUSE_MS=1100L;
-    private static final long REPEAT_PAUSE_MS=1300L;
 
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private LedBannerState state=LedBannerState.ready();
@@ -25,7 +23,6 @@ final class LedMarqueeView extends View {
     private float pitch=1f;
     private float scrollPx=0f;
     private long previousFrameMs=0L;
-    private long pauseUntilMs=0L;
     private boolean active=true;
 
     LedMarqueeView(Context context) { super(context); initialize(); }
@@ -44,39 +41,35 @@ final class LedMarqueeView extends View {
     void setDisplay(LedBannerState next) {
         if(next==null || next.equals(state)) return;
         state=next;
-        matrix=LedMatrixMessage.from(state); // Build fixed dot columns only on metadata changes.
+        matrix=LedMatrixMessage.from(state); // Only on station/status/song changes.
         setContentDescription("Radio LED display: "+state.station+" - "+state.detail);
-        resetMarquee(INTRO_PAUSE_MS);
-        invalidate();
+        scrollPx=0f;
+        previousFrameMs=0L;
+        invalidate(); // New message appears immediately, no initial hold.
     }
 
     void setActive(boolean enabled) {
         if(active==enabled) return;
         active=enabled;
-        previousFrameMs=0;
+        previousFrameMs=0L; // Ignore offscreen time; resume from the same LED position.
         if(active) invalidate();
-    }
-
-    private void resetMarquee(long holdMs) {
-        scrollPx=0;
-        previousFrameMs=0;
-        pauseUntilMs=SystemClock.uptimeMillis()+holdMs;
     }
 
     @Override protected void onSizeChanged(int w,int h,int oldW,int oldH) {
         super.onSizeChanged(w,h,oldW,oldH);
-        // Exactly nine LED rows, approximately 80% of the inner display height.
-        pitch=Math.max(dp(2f),(h-dp(8))/(ROWS+1.0f));
-        resetMarquee(INTRO_PAUSE_MS);
+        // Ten fixed dot rows fit WITHIN the original 42dp-high LED banner.
+        pitch=Math.max(1f,(h-dp(8))/(ROWS+1f));
+        scrollPx=0f;
+        previousFrameMs=0L;
         invalidate();
     }
 
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float width=getWidth(),height=getHeight();
-        if(width<10 || height<10) return;
+        float width=getWidth(), height=getHeight();
+        if(width<10 || height<10 || matrix.columns.length==0) return;
         float radius=Math.min(dp(12),height*.25f);
-        float left=dp(8),right=width-dp(8);
+        float left=dp(8), right=width-dp(8);
         float top=(height-ROWS*pitch)*.5f;
 
         paint.setStyle(Paint.Style.FILL);
@@ -87,30 +80,30 @@ final class LedMarqueeView extends View {
 
         canvas.save();
         canvas.clipRect(left,dp(4),right,height-dp(4));
-
-        // Inactive dots are subdued and never interfere with the letters.
         paint.setColor(DARK);
         for(float x=left+pitch*.5f;x<right;x+=pitch) {
-            for(int row=0;row<ROWS;row++)
+            for(int row=0;row<ROWS;row++) {
                 canvas.drawCircle(x,top+(row+.5f)*pitch,pitch*.16f,paint);
+            }
         }
 
-        float availableWidth=right-left;
-        float messageWidth=matrix.columns.length*pitch;
-        boolean marquee=messageWidth>availableWidth;
-        float origin=marquee?left+pitch:left+(availableWidth-messageWidth)*.5f;
-        float offset=marquee?scrollPx:0f;
-        float litRadius=pitch*.34f;
-        float glowRadius=pitch*.42f;
-        int first=Math.max(0,(int)Math.floor((left-origin+offset)/pitch)-1);
-        int last=Math.min(matrix.columns.length,(int)Math.ceil((right-origin+offset)/pitch)+2);
-
-        // Pixel-perfect glyph patterns: scroll only changes the x position, never the LED bits.
-        for(int col=first;col<last;col++) {
-            int bits=matrix.columns[col];
+        // The same loop applies to long AND short text, including READY and SELAWAT.
+        // A cached period includes a short inter-message gap and repeats indefinitely.
+        float period=matrix.columns.length*pitch;
+        float wrapped=LedSeamlessLoop.wrap(scrollPx,period);
+        int firstColumn=(int)Math.floor(wrapped/pitch);
+        float phase=wrapped-firstColumn*pitch;
+        int visibleColumns=(int)Math.ceil((right-left)/pitch)+3;
+        final float litRadius=pitch*.34f;
+        final float glowRadius=pitch*.42f;
+        for(int visualCol=-1;visualCol<visibleColumns;visualCol++) {
+            float x=left+(visualCol+.5f)*pitch-phase;
+            if(x+glowRadius<left || x-glowRadius>right) continue;
+            // Modulo indexing is continuous across every repeat boundary.
+            int index=LedSeamlessLoop.columnIndex(firstColumn,visualCol,matrix.columns.length);
+            int bits=matrix.columns[index];
             if(bits==0) continue;
-            float x=origin+(col+.5f)*pitch-offset;
-            int colour=matrix.colours[col];
+            int colour=matrix.colours[index];
             for(int row=0;row<ROWS;row++) {
                 if((bits&(1<<row))==0) continue;
                 float y=top+(row+.5f)*pitch;
@@ -128,24 +121,24 @@ final class LedMarqueeView extends View {
         canvas.drawRoundRect(dp(.8f),dp(.8f),width-dp(.8f),height-dp(.8f),radius,radius,paint);
         paint.setStyle(Paint.Style.FILL);
 
-        // Only animate while visible; no periodic work in the background or clock screen.
-        if(marquee && active && getWindowVisibility()==VISIBLE && isShown()) {
+        // Real elapsed time preserves speed regardless of frame rate.
+        // Do not animate while app is hidden or the Screensaver is shown.
+        if(active && getWindowVisibility()==VISIBLE && isShown()) {
             long now=SystemClock.uptimeMillis();
-            if(previousFrameMs>0 && now>=pauseUntilMs) {
-                long delta=Math.max(0L,Math.min(75L,now-previousFrameMs));
-                scrollPx+=dp(22f)*delta/1000f;
-                if(scrollPx>messageWidth+pitch*2f) resetMarquee(REPEAT_PAUSE_MS);
+            if(previousFrameMs>0 && now>previousFrameMs) {
+                scrollPx=LedSeamlessLoop.wrap(
+                    scrollPx+dp(25f)*(now-previousFrameMs)/1000f,period);
             }
             previousFrameMs=now;
-            postInvalidateDelayed(33L); // 30 FPS is sufficient for a car head unit.
+            postInvalidateDelayed(33L);
         } else {
-            previousFrameMs=0;
+            previousFrameMs=0L;
         }
     }
 
     @Override protected void onDetachedFromWindow() {
         active=false;
-        previousFrameMs=0;
+        previousFrameMs=0L;
         super.onDetachedFromWindow();
     }
 }
