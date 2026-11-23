@@ -22,6 +22,9 @@ public final class PlaybackService extends Service {
     private final PlaybackGate gate=new PlaybackGate();
     private final List<Observer> observers=new ArrayList<>();
     private List<Station> stations;
+    // Local station artwork is cached for notifications and lock-screen media controls.
+    private final Map<String,byte[]> localLogoBytes=new HashMap<>();
+    private final Map<String,android.graphics.Bitmap> localLogoBitmaps=new HashMap<>();
     private ExoPlayer player;
     private MediaSession session;
     private Station current;
@@ -87,6 +90,40 @@ public final class PlaybackService extends Service {
         String text=value.toString().replace("\u0000"," ").replaceAll("\\s+"," ").trim();
         if(text.equalsIgnoreCase("null") || text.equalsIgnoreCase("unknown")) return "";
         return text;
+    }
+    private String localLogoPath(Station station) {
+        if(station==null) return null;
+        if(station.localLogo.startsWith("logos/")) return station.localLogo;
+        if("SINAR FM".equals(station.name)) return "logos/sinar.png";
+        if("HITZ FM".equals(station.name)) return "logos/hitz.webp";
+        return null;
+    }
+    private byte[] localLogoData(Station station) {
+        String path=localLogoPath(station);
+        if(path==null) return null;
+        if(localLogoBytes.containsKey(path)) return localLogoBytes.get(path);
+        try(java.io.InputStream stream=getAssets().open(path);
+            java.io.ByteArrayOutputStream output=new java.io.ByteArrayOutputStream()) {
+            byte[] buffer=new byte[4096];
+            int n;
+            while((n=stream.read(buffer))!=-1) output.write(buffer,0,n);
+            byte[] data=output.toByteArray();
+            localLogoBytes.put(path,data);
+            return data;
+        } catch(java.io.IOException e) {
+            android.util.Log.e("IZZRadio","Unable to load station artwork "+path,e);
+            return null;
+        }
+    }
+    private android.graphics.Bitmap localLogoBitmap(Station station) {
+        String path=localLogoPath(station);
+        if(path==null) return null;
+        if(localLogoBitmaps.containsKey(path)) return localLogoBitmaps.get(path);
+        byte[] bytes=localLogoData(station);
+        if(bytes==null) return null;
+        android.graphics.Bitmap image=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.length);
+        if(image!=null) localLogoBitmaps.put(path,image);
+        return image;
     }
     private void cancelMetadataFallback() {
         if(metadataFallback!=null) handler.removeCallbacks(metadataFallback);
@@ -237,7 +274,10 @@ public final class PlaybackService extends Service {
         if(stopped || current==null || gate.locked()) return;
         String url=attempts.index()==1?current.fallback:current.primary;
         status="Connecting to "+current.name+(attempts.index()==1?" • fallback":attempts.index()==2?" • final retry":"");
-        MediaItem.Builder item=new MediaItem.Builder().setUri(url).setMediaMetadata(new MediaMetadata.Builder().setTitle(current.name).setArtist(current.country).build());
+        MediaMetadata.Builder mediaInfo=new MediaMetadata.Builder().setTitle(current.name).setArtist(current.country);
+        byte[] art=localLogoData(current);
+        if(art!=null) mediaInfo.setArtworkData(art,3); // ID3 front-cover picture type
+        MediaItem.Builder item=new MediaItem.Builder().setUri(url).setMediaMetadata(mediaInfo.build());
         if(url.contains("m3u8")) item.setMimeType(MimeTypes.APPLICATION_M3U8);
         startForeground(17,notification()); player.setMediaItem(item.build()); player.prepare(); player.play(); publish();
     }
@@ -256,7 +296,10 @@ public final class PlaybackService extends Service {
     private Notification notification() {
         PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,PlaybackService.class).setAction(STOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        return new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Selawat":current.name).setContentText(current!=null && nowPlaying!=null && !nowPlaying.isEmpty()?nowPlaying:status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session)).build();
+        NotificationCompat.Builder notice=new NotificationCompat.Builder(this,"playback").setSmallIcon(R.drawable.ic_radio).setContentTitle(current==null?"IZZ Radio • Selawat":current.name).setContentText(current!=null && nowPlaying!=null && !nowPlaying.isEmpty()?nowPlaying:status).setContentIntent(open).setOnlyAlertOnce(true).setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).addAction(R.drawable.ic_radio,"Stop",stop).setStyle(new androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(session));
+        android.graphics.Bitmap art=localLogoBitmap(current);
+        if(art!=null) notice.setLargeIcon(art);
+        return notice.build();
     }
     private void publish() { for(Observer o:new ArrayList<>(observers)) o.changed(); if(!stopped) getSystemService(NotificationManager.class).notify(17,notification()); }
     @Override public void onDestroy() {
