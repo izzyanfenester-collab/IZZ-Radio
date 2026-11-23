@@ -82,6 +82,8 @@ public final class PlaybackService extends Service {
     boolean doaPlaying() { return gate.locked(); }
     Station station() { return current; }
     boolean radioPlaying() { return !gate.locked() && current!=null && player.isPlaying(); }
+    boolean buffering() { return !gate.locked() && current!=null && player!=null &&
+            player.getPlaybackState()==Player.STATE_BUFFERING; }
     String status() { return status; }
     String nowPlaying() { return nowPlaying; }
 
