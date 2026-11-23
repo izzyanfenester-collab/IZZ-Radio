@@ -20,6 +20,7 @@ public final class MainActivity extends AppCompatActivity {
     private ClockExtras clockExtras;
     private ImageView selectionWallpaper;
     private View selectionShade;
+    private LedMarqueeView ledBanner;
     private TextView message,hours,seconds,ampm,date,stationLabel,nowPlayingLabel;
     private int clockColor=0xff39e639;
     private final List<TextView> weekdays=new ArrayList<>();
@@ -47,8 +48,8 @@ public final class MainActivity extends AppCompatActivity {
         clockMode=saved!=null && saved.getBoolean("clock"); showClock(clockMode);
         if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},4);
     }
-    @Override protected void onStart() { super.onStart(); bound=bindService(new Intent(this,PlaybackService.class),connection,BIND_AUTO_CREATE); handler.post(tick); }
-    @Override protected void onStop() { handler.removeCallbacks(tick); if(service!=null) service.removeObserver(observer); if(bound) { unbindService(connection); bound=false; } service=null; super.onStop(); }
+    @Override protected void onStart() { super.onStart(); if(ledBanner!=null) ledBanner.setActive(!clockMode); bound=bindService(new Intent(this,PlaybackService.class),connection,BIND_AUTO_CREATE); handler.post(tick); }
+    @Override protected void onStop() { if(ledBanner!=null) ledBanner.setActive(false); handler.removeCallbacks(tick); if(service!=null) service.removeObserver(observer); if(bound) { unbindService(connection); bound=false; } service=null; super.onStop(); }
     @Override protected void onSaveInstanceState(Bundle state) { state.putBoolean("clock",clockMode); state.putBoolean("manualClock",manualClockRequest); super.onSaveInstanceState(state); }
     private int dp(float value) { return Math.round(value*getResources().getDisplayMetrics().density); }
     private TextView text(String value,float size,int color) { TextView v=new TextView(this); v.setText(value); v.setTextColor(color); v.setTextSize(size); v.setGravity(Gravity.CENTER_VERTICAL); return v; }
@@ -129,7 +130,11 @@ public final class MainActivity extends AppCompatActivity {
         clockColor=getSharedPreferences("izz_radio_prefs",MODE_PRIVATE).getInt("clock_color",0xff39e639);
 
         LinearLayout titleRow=new LinearLayout(this); titleRow.setGravity(Gravity.CENTER_VERTICAL); dashboard.addView(titleRow,new LinearLayout.LayoutParams(-1,dp(48)));
-        TextView title=text("IZZ Radio — Malaysia & Singapore",22,0xfff4f0e8); title.setTypeface(null,Typeface.BOLD); titleRow.addView(title,new LinearLayout.LayoutParams(0,-1,1));
+        // V1.41: real dot-matrix LED takes the old title's space without moving controls.
+        ledBanner=new LedMarqueeView(this);
+        LinearLayout.LayoutParams bannerLp=new LinearLayout.LayoutParams(0,dp(42),1);
+        bannerLp.setMargins(0,dp(3),dp(6),dp(3));
+        titleRow.addView(ledBanner,bannerLp);
 
         TextView saver=text("Screen saver",16,0xffffffff);
         saver.setTypeface(null,Typeface.BOLD);
@@ -149,7 +154,11 @@ public final class MainActivity extends AppCompatActivity {
         LinearLayout.LayoutParams gearLp=new LinearLayout.LayoutParams(dp(52),dp(40)); gearLp.setMargins(dp(2),dp(4),0,dp(4)); titleRow.addView(gear,gearLp);
         gear.setContentDescription("Settings"); gear.setOnClickListener(v->showSettings());
 
-        message=text("Playing Selawat • select a station to queue",13,0xffd6dce5); dashboard.addView(message,new LinearLayout.LayoutParams(-1,dp(30))); message.setContentDescription("Playback status. Tap to resume or retry Selawat."); message.setOnClickListener(v->{ if(service!=null) service.resumeDoa(); });
+        message=text("Playing Selawat • select a station to queue",13,0xffd6dce5);
+        dashboard.addView(message,new LinearLayout.LayoutParams(-1,dp(30)));
+        message.setVisibility(View.GONE); // Avoid duplicate text while the LED already carries status.
+        message.setContentDescription("Playback warning. Tap to retry Selawat if playback failed.");
+        message.setOnClickListener(v->{ if(service!=null && service.doaPlaying()) service.resumeDoa(); });
         LinearLayout panes=new LinearLayout(this); dashboard.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         List<Station> catalog=Station.load(this);
         for(String country:new String[]{"Malaysia","Singapore"}) {
@@ -298,14 +307,25 @@ public final class MainActivity extends AppCompatActivity {
 
     private void refresh() {
         if(service==null) return;
-        message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
+        String status=service.status();
+        Station current=service.station();
+        ledBanner.setDisplay(LedBannerState.from(current==null?null:current.name,
+                status, service.nowPlaying(), service.doaPlaying(),
+                service.radioPlaying(), service.buffering()));
+        // Retain retry and error instructions, but remove duplicated normal status text.
+        boolean warning=status!=null && (status.toLowerCase(Locale.ROOT).contains("failed") ||
+                status.startsWith("Unable to play"));
+        message.setText(status);
+        message.setVisibility(warning?View.VISIBLE:View.GONE);
+        stationLabel.setText(current==null?"":current.name);
+        nowPlayingLabel.setText(current==null?"":service.nowPlaying());
         boolean playing=service.radioPlaying(); if(playing && !wasPlaying) showClock(true); wasPlaying=playing;
         for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(
                 surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xdc101a28,
                         current!=null && entry.getKey().equals(current.id)?0xffe3bf80:0xaa526171));
         if(current==null && !service.doaPlaying() && !manualClockRequest) showClock(false);
     }
-    private void showClock(boolean value) { if(!value) manualClockRequest=false; clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+    private void showClock(boolean value) { if(!value) manualClockRequest=false; clockMode=value; if(ledBanner!=null) ledBanner.setActive(!value); selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
     private void updateClock() { if(hours==null) return; if(clockExtras!=null) clockExtras.updateHijriCalendar(); Date now=new Date(); hours.setText(new SimpleDateFormat("hh:mm",Locale.US).format(now)); seconds.setText(new SimpleDateFormat("ss",Locale.US).format(now)); ampm.setText(new SimpleDateFormat("a",Locale.US).format(now)); date.setText(new SimpleDateFormat("dd MM yyyy",Locale.US).format(now)); int active=(Calendar.getInstance().get(Calendar.DAY_OF_WEEK)+5)%7; for(int i=0;i<weekdays.size();i++) weekdays.get(i).setTextColor(i==active?clockColor:shadeColor(clockColor,0.20f)); }
     @Override public void onBackPressed() { if(clockMode) showClock(false); else super.onBackPressed(); }
 }
