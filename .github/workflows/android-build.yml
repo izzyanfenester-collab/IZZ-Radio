@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136, feature/selawat-v137, feature/sinar-hitz-local-logos-v138, feature/ten-station-local-logos-v139, feature/maximized-frameless-station-logos-v140, release/izz-radio-v140-official, feature/led-dotmatrix-banner-v141, feature/led-dotmatrix-readability-v142, release/izz-radio-v142-official, feature/led-dotmatrix-8x10-seamless-v143]
+    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136, feature/selawat-v137, feature/sinar-hitz-local-logos-v138, feature/ten-station-local-logos-v139, feature/maximized-frameless-station-logos-v140, release/izz-radio-v140-official, feature/led-dotmatrix-banner-v141, feature/led-dotmatrix-readability-v142, release/izz-radio-v142-official, feature/led-dotmatrix-8x10-seamless-v143, feature/led-premium-slim-font-v144]
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,10 +23,10 @@ jobs:
           test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-      - name: Build V1.43 TESTING APK and verify 8x10 LED + seamless scroll tests
+      - name: Build V1.44 TESTING APK with slim 8x10 font and seamless-scroll tests
         run: |
           gradle :app:assembleDebug --stacktrace
-          gradle :app:testDebugUnitTest --tests 'com.izzyan.izzradio.PlaybackGateTest' --tests 'com.izzyan.izzradio.StreamAttemptsTest' --tests 'com.izzyan.izzradio.WakeCycleTrackerTest' --tests 'com.izzyan.izzradio.LedBannerStateTest' --tests 'com.izzyan.izzradio.LedMatrixFontTest' --tests 'com.izzyan.izzradio.LedSeamlessLoopTest'
+          gradle :app:testDebugUnitTest --tests 'com.izzyan.izzradio.PlaybackGateTest' --tests 'com.izzyan.izzradio.StreamAttemptsTest' --tests 'com.izzyan.izzradio.WakeCycleTrackerTest' --tests 'com.izzyan.izzradio.LedBannerStateTest' --tests 'com.izzyan.izzradio.LedMatrixFontTest' --tests 'com.izzyan.izzradio.LedSeamlessLoopTest' --tests 'com.izzyan.izzradio.LedPremiumSlimFontTest'
       - name: Android UI / Robolectric tests (non-blocking if external SDK artifacts unavailable)
         continue-on-error: true
         run: gradle :app:testDebugUnitTest --stacktrace
@@ -35,10 +35,10 @@ jobs:
           name: IZZ-Radio-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-      - name: Bundle V1.43 TESTING source
-        run: git archive --format=zip --output=IZZ-Radio-v1.43-TESTING-source.zip HEAD
+      - name: Bundle V1.44 TESTING source
+        run: git archive --format=zip --output=IZZ-Radio-v1.44-TESTING-source.zip HEAD
       - uses: actions/upload-artifact@v4
         with:
-          name: IZZ-Radio-v1.43-TESTING-source
-          path: IZZ-Radio-v1.43-TESTING-source.zip
+          name: IZZ-Radio-v1.44-TESTING-source
+          path: IZZ-Radio-v1.44-TESTING-source.zip
           if-no-files-found: error
