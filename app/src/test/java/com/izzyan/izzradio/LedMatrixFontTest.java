@@ -4,15 +4,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class LedMatrixFontTest {
-    @Test public void allAsciiUppercaseAndDigitsHaveFixedSevenByNinePatterns() {
+    @Test public void allAsciiUppercaseAndDigitsHaveFixedEightByTenPatterns() {
         String alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         for(char value:alphabet.toCharArray()) {
             int[] rows=LedMatrixFont.rows(value);
             assertNotNull("Missing glyph "+value,rows);
-            assertEquals("Wrong height "+value,9,rows.length);
+            assertEquals("Wrong height "+value,10,rows.length);
             int lit=0;
             for(int bits:rows) {
-                assertEquals(0,bits&~0x7f);
+                assertEquals(0,bits&~0xff);
                 lit+=Integer.bitCount(bits);
             }
             assertTrue("Empty glyph "+value,lit>=9);
@@ -51,7 +51,7 @@ public class LedMatrixFontTest {
         assertEquals(LedMatrixMessage.CYAN,msg.colours[0]);
         assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.GOLD));
         assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.RED));
-        for(int col:msg.columns) assertEquals(0,col&~0x1ff);
+        for(int col:msg.columns) assertEquals(0,col&~0x3ff);
     }
 
     @Test public void noMetadataDoesNotInventSong() {
