@@ -4,10 +4,6 @@ android {
     compileSdk 35
     buildToolsVersion "35.0.0"
     defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 46; versionName '1.42'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
-    // V1.42 uses a separate TESTING app ID because CI debug signing keys vary between builds.\n    // Existing V1.40 Official and V1.41 TESTING installs/data remain untouched.
-    buildTypes {
-        debug { applicationIdSuffix '.testingv142' }
-    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     testOptions { unitTests.includeAndroidResources = true }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/stations')
