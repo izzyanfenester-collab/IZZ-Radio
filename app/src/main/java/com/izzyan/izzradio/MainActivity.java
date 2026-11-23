@@ -184,6 +184,9 @@ public final class MainActivity extends AppCompatActivity {
                 tile.setGravity(Gravity.CENTER_HORIZONTAL);
                 tile.setPadding(dp(6),dp(5),dp(6),dp(5));
                 tile.setBackground(surface(0xdc101a28,0xaa526171));
+                tile.setElevation(dp(2));
+                tile.setForeground(new android.graphics.drawable.RippleDrawable(
+                        android.content.res.ColorStateList.valueOf(0x22ffd6a0),null,null));
                 GridLayout.LayoutParams tileLp=new GridLayout.LayoutParams();
                 tileLp.width=dp(90);
                 tileLp.height=dp(90);
@@ -194,10 +197,15 @@ public final class MainActivity extends AppCompatActivity {
                 ImageView logo=new ImageView(this);
                 logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 logo.setContentDescription(s.name+" artwork");
+                // Preserve source logos and their aspect ratios inside a rounded premium frame.
+                logo.setBackground(surface(0x771b293b,0x446f869f));
+                logo.setPadding(dp(4),dp(4),dp(4),dp(4));
+                logo.setClipToOutline(true);
                 LinearLayout.LayoutParams imageLp=new LinearLayout.LayoutParams(-1,0,1);
-                imageLp.setMargins(dp(9),0,dp(9),0);
+                imageLp.setMargins(dp(5),0,dp(5),0);
                 tile.addView(logo,imageLp);
-                if(s.name.equals("SINAR FM")) setExactStationLogo(logo,"logos/sinar.png");
+                if(s.localLogo.startsWith("logos/")) setExactStationLogo(logo,s.localLogo);
+                else if(s.name.equals("SINAR FM")) setExactStationLogo(logo,"logos/sinar.png");
                 else if(s.name.equals("HITZ FM")) setExactStationLogo(logo,"logos/hitz.webp");
                 else if(s.localLogo.equals("logo_suria")) logo.setImageResource(R.drawable.logo_suria);
                 else {
@@ -284,7 +292,9 @@ public final class MainActivity extends AppCompatActivity {
         if(service==null) return;
         message.setText(service.status()); Station current=service.station(); stationLabel.setText(current==null?"":current.name); nowPlayingLabel.setText(current==null?"":service.nowPlaying());
         boolean playing=service.radioPlaying(); if(playing && !wasPlaying) showClock(true); wasPlaying=playing;
-        for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xcc101a28,current!=null && entry.getKey().equals(current.id)?0xffb0c6df:0xaa526171));
+        for(Map.Entry<String,LinearLayout> entry:cards.entrySet()) entry.getValue().setBackground(
+                surface(current!=null && entry.getKey().equals(current.id)?0xee294766:0xdc101a28,
+                        current!=null && entry.getKey().equals(current.id)?0xffe3bf80:0xaa526171));
         if(current==null && !service.doaPlaying() && !manualClockRequest) showClock(false);
     }
     private void showClock(boolean value) { if(!value) manualClockRequest=false; clockMode=value; selectionWallpaper.setVisibility(value?View.GONE:View.VISIBLE); selectionShade.setVisibility(value?View.GONE:View.VISIBLE); dashboard.setVisibility(value?View.GONE:View.VISIBLE); clockStage.setVisibility(value?View.VISIBLE:View.GONE); WindowManager.LayoutParams params=getWindow().getAttributes(); params.screenBrightness=value?0.10f:WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE; getWindow().setAttributes(params); if(value) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
