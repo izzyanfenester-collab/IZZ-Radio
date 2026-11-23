@@ -8,7 +8,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 /**
- * V1.43: True 8x10 LED matrix with an always-moving, seamless right-to-left marquee.
+ * V1.44: Hand-designed premium slim 8x10 LED matrix with V1.43 seamless scrolling.
  * The existing Home banner dimensions and blue housing are never changed.
  * Character LEDs are fixed cached columns; only their on-screen positions move.
  */
@@ -83,7 +83,7 @@ final class LedMarqueeView extends View {
         paint.setColor(DARK);
         for(float x=left+pitch*.5f;x<right;x+=pitch) {
             for(int row=0;row<ROWS;row++) {
-                canvas.drawCircle(x,top+(row+.5f)*pitch,pitch*.16f,paint);
+                canvas.drawCircle(x,top+(row+.5f)*pitch,pitch*.11f,paint);
             }
         }
 
@@ -94,8 +94,8 @@ final class LedMarqueeView extends View {
         int firstColumn=(int)Math.floor(wrapped/pitch);
         float phase=wrapped-firstColumn*pitch;
         int visibleColumns=(int)Math.ceil((right-left)/pitch)+3;
-        final float litRadius=pitch*.34f;
-        final float glowRadius=pitch*.42f;
+        final float litRadius=pitch*.30f;
+        final float glowRadius=pitch*.38f;
         for(int visualCol=-1;visualCol<visibleColumns;visualCol++) {
             float x=left+(visualCol+.5f)*pitch-phase;
             if(x+glowRadius<left || x-glowRadius>right) continue;
@@ -107,7 +107,7 @@ final class LedMarqueeView extends View {
             for(int row=0;row<ROWS;row++) {
                 if((bits&(1<<row))==0) continue;
                 float y=top+(row+.5f)*pitch;
-                paint.setColor((colour&0x00ffffff)|0x26000000);
+                paint.setColor((colour&0x00ffffff)|0x16000000);
                 canvas.drawCircle(x,y,glowRadius,paint);
                 paint.setColor(colour);
                 canvas.drawCircle(x,y,litRadius,paint);
