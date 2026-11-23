@@ -12,7 +12,7 @@ final class LedMatrixMessage {
     static final int GREEN=0xff47e9a2;
     static final int WHITE=0xffe5f6ff;
 
-    final int[] columns; // Each int is nine vertical LED bits.
+    final int[] columns; // Each int is ten vertical LED bits.
     final int[] colours;
 
     private LedMatrixMessage(int[] columns,int[] colours) {
@@ -65,6 +65,9 @@ final class LedMatrixMessage {
             colours.add(colour);
         }
         LedMatrixMessage finish() {
+            // Small, repeatable separator is part of the cached cycle itself.
+            // This ensures the next copy starts immediately after the previous message.
+            for(int gap=0;gap<8;gap++) add(0,GOLD);
             int[] columns=new int[bits.size()],rgb=new int[colours.size()];
             for(int i=0;i<columns.length;i++) { columns[i]=bits.get(i); rgb[i]=colours.get(i); }
             return new LedMatrixMessage(columns,rgb);
