@@ -30,7 +30,7 @@ jobs:
           disable-animations: true
           script: |
             adb install -r app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -n com.izzyan.izzradio.testing/com.izzyan.izzradio.MainActivity
+            adb shell am start -n com.izzyan.izzradio.testingv140/com.izzyan.izzradio.MainActivity
             sleep 8
             mkdir -p preview
             adb shell screencap -p /sdcard/izz-radio-v140-home.png
