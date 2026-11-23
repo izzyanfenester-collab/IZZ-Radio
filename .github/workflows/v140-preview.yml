@@ -1,7 +1,7 @@
 name: IZZ Radio v1.40 TESTING screenshot preview
 on:
   push:
-    branches: [feature/ten-station-local-logos-v140]
+    branches: [feature/maximized-frameless-station-logos-v140]
   workflow_dispatch:
 permissions:
   contents: read
