@@ -12,7 +12,7 @@ final class LedMatrixMessage {
     static final int GREEN=0xffffbd37;
     static final int WHITE=0xffffbd37;
 
-    final int[] columns; // Each int is ten vertical LED bits.
+    final int[] columns; // Each int contains nine vertical LED bits.
     final int[] colours;
 
     private LedMatrixMessage(int[] columns,int[] colours) {
