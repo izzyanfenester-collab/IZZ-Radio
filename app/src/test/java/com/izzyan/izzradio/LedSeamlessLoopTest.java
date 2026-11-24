@@ -48,12 +48,12 @@ public final class LedSeamlessLoopTest {
     }
 
     @Test public void allTenRowsCanBeDrawn() {
-        assertEquals(8,LedMatrixFont.WIDTH);
-        assertEquals(10,LedMatrixFont.HEIGHT);
+        assertEquals(7,LedMatrixFont.WIDTH);
+        assertEquals(8,LedMatrixFont.HEIGHT);
         for(char c:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".toCharArray()) {
             int[] rows=LedMatrixFont.rows(c);
-            assertEquals(10,rows.length);
-            for(int row:rows) assertEquals(0,row&~0xff);
+            assertEquals(8,rows.length);
+            for(int row:rows) assertEquals(0,row&~0x7f);
         }
     }
 }
