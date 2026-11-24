@@ -8,7 +8,7 @@ import android.util.AttributeSet;
 import android.view.View;
 
 /**
- * V1.45: exact reference-derived golden amber 7x8 LED alphabet, preserving seamless scrolling.
+ * V1.45: exact image-measured golden amber 7x9 LED alphabet, preserving seamless scrolling.
  * The existing Home banner dimensions and blue housing are never changed.
  * Character LEDs are fixed cached columns; only their on-screen positions move.
  */
@@ -57,7 +57,7 @@ final class LedMarqueeView extends View {
 
     @Override protected void onSizeChanged(int w,int h,int oldW,int oldH) {
         super.onSizeChanged(w,h,oldW,oldH);
-        // Reference-style eight-dot-high glyphs fit WITHIN the unchanged 42dp banner.
+        // Measured reference nine-dot-high glyphs fit WITHIN the unchanged 42dp banner.
         pitch=Math.max(1f,(h-dp(8))/(ROWS+1f));
         scrollPx=0f;
         previousFrameMs=0L;
