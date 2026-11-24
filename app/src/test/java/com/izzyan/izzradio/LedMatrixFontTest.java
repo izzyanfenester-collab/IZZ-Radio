@@ -4,18 +4,18 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class LedMatrixFontTest {
-    @Test public void allAsciiUppercaseAndDigitsHaveFixedEightByTenPatterns() {
+    @Test public void allAsciiUppercaseAndDigitsMatchReferenceSevenByEightPatterns() {
         String alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         for(char value:alphabet.toCharArray()) {
             int[] rows=LedMatrixFont.rows(value);
             assertNotNull("Missing glyph "+value,rows);
-            assertEquals("Wrong height "+value,10,rows.length);
+            assertEquals("Wrong height "+value,8,rows.length);
             int lit=0;
             for(int bits:rows) {
-                assertEquals(0,bits&~0xff);
+                assertEquals(0,bits&~0x7f);
                 lit+=Integer.bitCount(bits);
             }
-            assertTrue("Empty glyph "+value,lit>=9);
+            assertTrue("Empty glyph "+value,lit>=8);
         }
     }
 
@@ -50,8 +50,8 @@ public class LedMatrixFontTest {
         assertTrue(msg.columns.length>100);
         assertEquals(LedMatrixMessage.CYAN,msg.colours[0]);
         assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.GOLD));
-        assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.RED));
-        for(int col:msg.columns) assertEquals(0,col&~0x3ff);
+        assertTrue(java.util.Arrays.stream(msg.colours).allMatch(c->c==LedMatrixMessage.GOLD));
+        for(int col:msg.columns) assertEquals(0,col&~0xff);
     }
 
     @Test public void noMetadataDoesNotInventSong() {
@@ -59,6 +59,6 @@ public class LedMatrixFontTest {
                 "",false,true,false);
         assertEquals("LIVE RADIO",s.detail);
         LedMatrixMessage msg=LedMatrixMessage.from(s);
-        assertFalse(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.RED));
+        assertTrue(java.util.Arrays.stream(msg.colours).allMatch(c->c==LedMatrixMessage.GOLD));
     }
 }
