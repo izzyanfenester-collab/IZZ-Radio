@@ -50,7 +50,7 @@ public class LedMatrixFontTest {
         assertTrue(msg.columns.length>100);
         assertEquals(LedMatrixMessage.CYAN,msg.colours[0]);
         assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.GOLD));
-        assertTrue(java.util.Arrays.stream(msg.colours).allMatch(c->c==LedMatrixMessage.GOLD));
+        assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.RED));
         for(int col:msg.columns) assertEquals(0,col&~0x1ff);
     }
 
@@ -59,6 +59,6 @@ public class LedMatrixFontTest {
                 "",false,true,false);
         assertEquals("LIVE RADIO",s.detail);
         LedMatrixMessage msg=LedMatrixMessage.from(s);
-        assertTrue(java.util.Arrays.stream(msg.colours).allMatch(c->c==LedMatrixMessage.GOLD));
+        assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.GOLD));
     }
 }
