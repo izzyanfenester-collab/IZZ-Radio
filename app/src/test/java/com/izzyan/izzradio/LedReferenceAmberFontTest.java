@@ -28,11 +28,13 @@ public class LedReferenceAmberFontTest {
             assertEquals(9,LedMatrixFont.rows(ch).length);
     }
 
-    @Test public void stationSongLiveStatusAllUseReferenceAmber() {
+    @Test public void stationSongLiveStatusUseV142Multicolours() {
         LedBannerState v=LedBannerState.from("Suria FM","Playing Suria FM",
                  "♪ Doechii - Anxiety",false,true,false);
         LedMatrixMessage message=LedMatrixMessage.from(v);
-        assertTrue(Arrays.stream(message.colours).allMatch(c->c==0xffffbd37));
+        assertEquals(LedMatrixMessage.CYAN,message.colours[0]);
+        assertTrue(Arrays.stream(message.colours).anyMatch(c->c==LedMatrixMessage.GOLD));
+        assertTrue(Arrays.stream(message.colours).anyMatch(c->c==LedMatrixMessage.RED));
         for(int i=message.columns.length-8;i<message.columns.length;i++)
             assertEquals(0,message.columns[i]);
     }
