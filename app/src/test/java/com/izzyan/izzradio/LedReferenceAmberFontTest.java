@@ -6,23 +6,26 @@ import java.util.Arrays;
 
 /** Regression fixtures traced from the user-supplied LED dot matrix reference image. */
 public class LedReferenceAmberFontTest {
-    @Test public void primaryGlyphsMatchTheSuppliedReference() {
-        assertArrayEquals(new int[]{62,127,103,103,127,127,127,103},LedMatrixFont.rows('A'));
-        assertArrayEquals(new int[]{126,127,103,127,126,124,110,103},LedMatrixFont.rows('R'));
-        assertArrayEquals(new int[]{62,127,103,126,127,103,127,62},LedMatrixFont.rows('8'));
-        assertArrayEquals(new int[]{127,127,7,30,60,112,126,127},LedMatrixFont.rows('Z'));
+    @Test public void sampledGlyphsMatchOriginalImageMeasuredDotGrid() {
+        // Reference: original 259x180 LED image. Grid = 7 columns x 9 rows.
+        assertArrayEquals(new int[]{62,127,99,99,99,127,127,99,99},LedMatrixFont.rows('A'));
+        assertArrayEquals(new int[]{126,127,99,99,127,126,108,102,99},LedMatrixFont.rows('R'));
+        assertArrayEquals(new int[]{62,127,99,99,62,99,99,127,62},LedMatrixFont.rows('8'));
+        assertArrayEquals(new int[]{127,127,3,6,28,48,96,127,127},LedMatrixFont.rows('Z'));
+        assertArrayEquals(new int[]{62,127,99,99,99,99,99,127,62},LedMatrixFont.rows('0'));
+        assertArrayEquals(new int[]{0,0,12,12,0,12,12,0,0},LedMatrixFont.rows(':'));
     }
 
-    @Test public void referenceCharacterDimensionsAndGlyphsArePresent() {
+    @Test public void measuredSevenByNineGlyphsAndPunctuationRemainAvailable() {
         assertEquals(7,LedMatrixFont.WIDTH);
-        assertEquals(8,LedMatrixFont.HEIGHT);
+        assertEquals(9,LedMatrixFont.HEIGHT);
         for(char ch:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".toCharArray()) {
             int[] rows=LedMatrixFont.rows(ch);
-            assertEquals(8,rows.length);
+            assertEquals(9,rows.length);
             for(int row:rows) assertEquals(0,row&~127);
         }
-        for(char ch:"-+.:()!?".toCharArray())
-            assertEquals(8,LedMatrixFont.rows(ch).length);
+        for(char ch:"-+.:()!?×÷Σ".toCharArray())
+            assertEquals(9,LedMatrixFont.rows(ch).length);
     }
 
     @Test public void stationSongLiveStatusAllUseReferenceAmber() {
