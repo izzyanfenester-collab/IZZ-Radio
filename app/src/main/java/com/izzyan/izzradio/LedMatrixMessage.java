@@ -6,11 +6,11 @@ import java.util.Locale;
 
 /** Precomputed LED columns and colours; immutable between metadata updates. */
 final class LedMatrixMessage {
-    static final int CYAN=0xff00c8ff;
-    static final int GOLD=0xffffd447;
-    static final int RED=0xffff4545;
-    static final int GREEN=0xff47e9a2;
-    static final int WHITE=0xffe5f6ff;
+    static final int CYAN=0xffffbd37;
+    static final int GOLD=0xffffbd37;
+    static final int RED=0xffffbd37;
+    static final int GREEN=0xffffbd37;
+    static final int WHITE=0xffffbd37;
 
     final int[] columns; // Each int is ten vertical LED bits.
     final int[] colours;
@@ -22,7 +22,8 @@ final class LedMatrixMessage {
 
     static LedMatrixMessage from(LedBannerState state) {
         Builder builder=new Builder();
-        int stationColour=CYAN, detailsColour=GOLD;
+        // V1.45: all station/song/status text uses the same reference Golden Amber.
+        int stationColour=GOLD, detailsColour=GOLD;
         if(state.mode==LedBannerState.SELAWAT) stationColour=detailsColour=GREEN;
         else if(state.mode==LedBannerState.ERROR) stationColour=detailsColour=RED;
         else if(state.mode==LedBannerState.WAITING) stationColour=detailsColour=GOLD;
