@@ -4,8 +4,6 @@ android {
     compileSdk 35
     buildToolsVersion "35.0.0"
     defaultConfig { applicationId 'com.izzyan.izzradio'; minSdk 24; targetSdk 35; versionCode 51; versionName '1.47'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
-    // Isolate TESTING install from Official to protect existing user data.
-    buildTypes { debug { applicationIdSuffix '.testingv147' } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     testOptions { unitTests.includeAndroidResources = true }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/stations')
