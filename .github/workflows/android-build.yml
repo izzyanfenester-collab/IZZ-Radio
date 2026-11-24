@@ -1,7 +1,7 @@
 name: Android debug APK
 on:
   push:
-    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136, feature/selawat-v137, feature/sinar-hitz-local-logos-v138, feature/ten-station-local-logos-v139, feature/maximized-frameless-station-logos-v140, release/izz-radio-v140-official, feature/led-dotmatrix-banner-v141, feature/led-dotmatrix-readability-v142, release/izz-radio-v142-official]
+    branches: [main, codex/izz-radio-final, feature/compact-square-radio-v136, feature/selawat-v137, feature/sinar-hitz-local-logos-v138, feature/ten-station-local-logos-v139, feature/maximized-frameless-station-logos-v140, release/izz-radio-v140-official, feature/led-dotmatrix-banner-v141, feature/led-dotmatrix-readability-v142, release/izz-radio-v142-official, feature/led-dotmatrix-8x10-seamless-v143, feature/led-premium-slim-font-v144, feature/amber-reference-led-v145, feature/led-exact-reference-v146, feature/led-v142-colors-v147, release/izz-radio-v147-official]
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,10 +23,14 @@ jobs:
           test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-      - name: Build V1.42 Official-package APK and verify LED glyph tests
+      - name: Verify V1.46 font and scrolling files remain unchanged
+        run: |
+          git fetch --no-tags --depth=1 origin feature/led-exact-reference-v146
+          git diff --exit-code FETCH_HEAD HEAD -- app/src/main/java/com/izzyan/izzradio/LedMatrixFont.java app/src/main/java/com/izzyan/izzradio/LedMarqueeView.java app/src/main/java/com/izzyan/izzradio/LedSeamlessLoop.java
+      - name: Build V1.47 Official package with V1.46 font and V1.42 colours
         run: |
           gradle :app:assembleDebug --stacktrace
-          gradle :app:testDebugUnitTest --tests 'com.izzyan.izzradio.PlaybackGateTest' --tests 'com.izzyan.izzradio.StreamAttemptsTest' --tests 'com.izzyan.izzradio.WakeCycleTrackerTest' --tests 'com.izzyan.izzradio.LedBannerStateTest' --tests 'com.izzyan.izzradio.LedMatrixFontTest'
+          gradle :app:testDebugUnitTest --tests 'com.izzyan.izzradio.PlaybackGateTest' --tests 'com.izzyan.izzradio.StreamAttemptsTest' --tests 'com.izzyan.izzradio.WakeCycleTrackerTest' --tests 'com.izzyan.izzradio.LedBannerStateTest' --tests 'com.izzyan.izzradio.LedMatrixFontTest' --tests 'com.izzyan.izzradio.LedSeamlessLoopTest' --tests 'com.izzyan.izzradio.LedReferenceAmberFontTest' --tests 'com.izzyan.izzradio.LedV147ColoursTest'
       - name: Android UI / Robolectric tests (non-blocking if external SDK artifacts unavailable)
         continue-on-error: true
         run: gradle :app:testDebugUnitTest --stacktrace
@@ -35,10 +39,10 @@ jobs:
           name: IZZ-Radio-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-      - name: Bundle V1.42 OFFICIAL source
-        run: git archive --format=zip --output=IZZ-Radio-v1.42-OFFICIAL-source.zip HEAD
+      - name: Bundle V1.47 OFFICIAL source
+        run: git archive --format=zip --output=IZZ-Radio-v1.47-OFFICIAL-source.zip HEAD
       - uses: actions/upload-artifact@v4
         with:
-          name: IZZ-Radio-v1.42-OFFICIAL-source
-          path: IZZ-Radio-v1.42-OFFICIAL-source.zip
+          name: IZZ-Radio-v1.47-OFFICIAL-source
+          path: IZZ-Radio-v1.47-OFFICIAL-source.zip
           if-no-files-found: error

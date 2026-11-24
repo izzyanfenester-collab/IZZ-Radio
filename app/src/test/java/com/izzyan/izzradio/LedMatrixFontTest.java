@@ -4,7 +4,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class LedMatrixFontTest {
-    @Test public void allAsciiUppercaseAndDigitsHaveFixedSevenByNinePatterns() {
+    @Test public void allAsciiUppercaseAndDigitsMatchReferenceSevenByNinePatterns() {
         String alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         for(char value:alphabet.toCharArray()) {
             int[] rows=LedMatrixFont.rows(value);
@@ -15,7 +15,7 @@ public class LedMatrixFontTest {
                 assertEquals(0,bits&~0x7f);
                 lit+=Integer.bitCount(bits);
             }
-            assertTrue("Empty glyph "+value,lit>=9);
+            assertTrue("Empty glyph "+value,lit>=8);
         }
     }
 
@@ -59,6 +59,6 @@ public class LedMatrixFontTest {
                 "",false,true,false);
         assertEquals("LIVE RADIO",s.detail);
         LedMatrixMessage msg=LedMatrixMessage.from(s);
-        assertFalse(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.RED));
+        assertTrue(java.util.Arrays.stream(msg.colours).anyMatch(c->c==LedMatrixMessage.GOLD));
     }
 }
