@@ -8,14 +8,14 @@ import android.util.AttributeSet;
 import android.view.View;
 
 /**
- * V1.44: Hand-designed premium slim 8x10 LED matrix with V1.43 seamless scrolling.
+ * V1.45: exact reference-derived golden amber 7x8 LED alphabet, preserving seamless scrolling.
  * The existing Home banner dimensions and blue housing are never changed.
  * Character LEDs are fixed cached columns; only their on-screen positions move.
  */
 final class LedMarqueeView extends View {
     private static final int ROWS=LedMatrixFont.HEIGHT;
-    private static final int DARK=0xff151515;
-    private static final int BACKGROUND=0xff050505;
+    private static final int DARK=0xff171715;
+    private static final int BACKGROUND=0xff111110;
 
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
     private LedBannerState state=LedBannerState.ready();
@@ -57,7 +57,7 @@ final class LedMarqueeView extends View {
 
     @Override protected void onSizeChanged(int w,int h,int oldW,int oldH) {
         super.onSizeChanged(w,h,oldW,oldH);
-        // Ten fixed dot rows fit WITHIN the original 42dp-high LED banner.
+        // Reference-style eight-dot-high glyphs fit WITHIN the unchanged 42dp banner.
         pitch=Math.max(1f,(h-dp(8))/(ROWS+1f));
         scrollPx=0f;
         previousFrameMs=0L;
@@ -83,7 +83,7 @@ final class LedMarqueeView extends View {
         paint.setColor(DARK);
         for(float x=left+pitch*.5f;x<right;x+=pitch) {
             for(int row=0;row<ROWS;row++) {
-                canvas.drawCircle(x,top+(row+.5f)*pitch,pitch*.11f,paint);
+                canvas.drawCircle(x,top+(row+.5f)*pitch,pitch*.18f,paint);
             }
         }
 
@@ -94,8 +94,8 @@ final class LedMarqueeView extends View {
         int firstColumn=(int)Math.floor(wrapped/pitch);
         float phase=wrapped-firstColumn*pitch;
         int visibleColumns=(int)Math.ceil((right-left)/pitch)+3;
-        final float litRadius=pitch*.30f;
-        final float glowRadius=pitch*.38f;
+        final float litRadius=pitch*.28f;
+        final float glowRadius=pitch*.43f;
         for(int visualCol=-1;visualCol<visibleColumns;visualCol++) {
             float x=left+(visualCol+.5f)*pitch-phase;
             if(x+glowRadius<left || x-glowRadius>right) continue;
@@ -107,7 +107,7 @@ final class LedMarqueeView extends View {
             for(int row=0;row<ROWS;row++) {
                 if((bits&(1<<row))==0) continue;
                 float y=top+(row+.5f)*pitch;
-                paint.setColor((colour&0x00ffffff)|0x16000000);
+                paint.setColor((colour&0x00ffffff)|0x33000000);
                 canvas.drawCircle(x,y,glowRadius,paint);
                 paint.setColor(colour);
                 canvas.drawCircle(x,y,litRadius,paint);
