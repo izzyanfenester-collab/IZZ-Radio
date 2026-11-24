@@ -68,7 +68,7 @@ final class LedMatrixMessage {
         LedMatrixMessage finish() {
             // Small, repeatable separator is part of the cached cycle itself.
             // This ensures the next copy starts immediately after the previous message.
-            for(int gap=0;gap<8;gap++) add(0,GOLD);
+            for(int gap=0;gap<8;gap++) add(0,colours.isEmpty()?GOLD:colours.get(colours.size()-1));
             int[] columns=new int[bits.size()],rgb=new int[colours.size()];
             for(int i=0;i<columns.length;i++) { columns[i]=bits.get(i); rgb[i]=colours.get(i); }
             return new LedMatrixMessage(columns,rgb);
